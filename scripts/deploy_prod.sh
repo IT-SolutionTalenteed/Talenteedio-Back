@@ -24,6 +24,6 @@ echo "🛠️ Building the application..."
 npm run build
 
 echo "🔄 Restarting supervisor"
-sudo supervisorctl restart all
+sudo /usr/bin/supervisorctl restart all
 
 echo "Deployment completed successfully. 🎉🎉🎉"
