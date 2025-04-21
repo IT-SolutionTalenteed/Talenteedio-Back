@@ -1,0 +1,60 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getJobTypes(input: PaginationInput, filter: JobTypeFilter): PaginateJobType
+    getOneJobType(input: GetOneJobTypeInput): JobType
+}
+
+type Mutation {
+    updateJobType(input: UpdateJobTypeInput): JobType
+    createJobType(input: CreateJobTypeInput): JobType
+    deleteJobType(input: DeleteJobTypeInput): DeleteJobTypeResponse
+    changeJobTypeStatus(input: ChangeJobTypeStatusInput): JobType
+}
+
+input ChangeJobTypeStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteJobTypeInput {
+    id: String!
+}
+
+input GetOneJobTypeInput {
+    id: String!
+}
+
+type DeleteJobTypeResponse {
+    success: Boolean!
+}
+
+input CreateJobTypeInput {
+    name: String!
+    status: Status
+}
+
+input UpdateJobTypeInput {
+    id: String!
+    name: String
+    status: Status
+}
+
+type PaginateJobType {
+    rows: [JobType]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type JobType {
+    id: String!
+    name: String!
+    status: Status!
+}
+
+input JobTypeFilter {
+    name: String
+    status: String
+}

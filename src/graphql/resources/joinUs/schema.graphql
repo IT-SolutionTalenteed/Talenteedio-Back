@@ -1,0 +1,23 @@
+# import CreateEventInput from '../event/schema.graphql'
+
+type Query {
+    joinUs(input: JoinUsForm): String
+}
+
+input JoinUsEventInput {
+    title: String!
+    slug: String!
+}
+
+input JoinUsForm {
+    socialReason: String!
+    address: String!
+    firstName: String!
+    lastName: String!
+    professionalEmail: String!
+    role: String!
+    phone: String!
+    motivation: String!
+    events: [JoinUsEventInput]
+    otherTopics: String
+}

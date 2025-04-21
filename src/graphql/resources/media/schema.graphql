@@ -1,0 +1,35 @@
+# import PaginationInput from '../../type.graphql'
+
+scalar Upload
+
+type Query {
+    getMedias(input: PaginationInput, filter: MediaFilter): PaginateMedia
+}
+
+type Mutation {
+    uploadImage(input: Upload!): Media
+    uploadPdf(input: Upload!): Media
+}
+
+type Media {
+    id: String!
+    fileUrl: String!
+    fileType: String!
+    fileName: String!
+}
+
+type PaginateMedia {
+    rows: [Media]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+input MediaFilter {
+    fileType: String
+    fileName: String
+}
+
+input MediaInput {
+    id: String
+}

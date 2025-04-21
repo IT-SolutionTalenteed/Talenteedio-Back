@@ -1,0 +1,44 @@
+# import Payload from '../../type.graphql'
+# import Contact from '../../type.graphql'
+# import ContactInput from '../../type.graphql'
+# import Address from '../../type.graphql'
+# import AddressInput from '../../type.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+
+type Query {
+    getSetting: Setting
+}
+
+type Mutation {
+    createOrUpdateSetting(input: SettingInput): Payload
+}
+
+type Setting {
+    id: String!
+    contact: Contact!
+    terms: String
+    confidentiality: String
+    didYouKnow: String
+    gateway: String
+    voice: String
+    initiative: String
+    headerText: String
+    homeImage1: Media
+    homeImage2: Media
+    homeImage3: Media
+}
+
+input SettingInput {
+    contact: ContactInput!
+    terms: String
+    confidentiality: String
+    didYouKnow: String
+    gateway: String
+    voice: String
+    initiative: String
+    headerText: String
+    homeImage1: MediaInput
+    homeImage2: MediaInput
+    homeImage3: MediaInput
+}

@@ -1,0 +1,66 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getTestimonials(input: PaginationInput, filter: TestimonialFilter): PaginateTestimonial
+    getOneTestimonial(input: GetOneTestimonialInput): Testimonial
+}
+
+type Mutation {
+    updateTestimonial(input: UpdateTestimonialInput): Testimonial
+    createTestimonial(input: CreateTestimonialInput): Testimonial
+    deleteTestimonial(input: DeleteTestimonialInput): DeleteTestimonialResponse
+    changeTestimonialStatus(input: ChangeTestimonialStatusInput): Testimonial
+}
+
+input ChangeTestimonialStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteTestimonialInput {
+    id: String!
+}
+
+input GetOneTestimonialInput {
+    id: String!
+}
+
+type DeleteTestimonialResponse {
+    success: Boolean!
+}
+
+input CreateTestimonialInput {
+    name: String!
+    comment: String!
+    jobPosition: String
+    status: Status
+}
+
+input UpdateTestimonialInput {
+    id: String!
+    name: String
+    comment: String
+    jobPosition: String
+    status: Status
+}
+
+type PaginateTestimonial {
+    rows: [Testimonial]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Testimonial {
+    id: String!
+    name: String!
+    comment: String!
+    jobPosition: String
+    status: Status!
+}
+
+input TestimonialFilter {
+    name: String
+    status: String
+}

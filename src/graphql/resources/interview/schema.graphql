@@ -1,0 +1,101 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Admin from '../user/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+
+scalar Date
+
+type Query {
+    getInterviews(input: PaginationInput, filter: InterviewFilter): PaginateInterview
+    getOneInterview(input: GetOneInterviewInput): Interview
+}
+
+type Mutation {
+    updateInterview(input: UpdateInterviewInput): Interview
+    createInterview(input: CreateInterviewInput): Interview
+    deleteInterview(input: DeleteInterviewInput): DeleteInterviewResponse
+    changeInterviewStatus(input: ChangeInterviewStatusInput): Interview
+}
+
+input ChangeInterviewStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteInterviewInput {
+    id: String!
+}
+
+input GetOneInterviewInput {
+    id: String
+    slug: String
+}
+
+type DeleteInterviewResponse {
+    success: Boolean!
+}
+
+input CreateInterviewInput {
+    title: String!
+    slug: String!
+    content: String!
+    date: Date!
+    videoSrc: String!
+    metaDescription: String
+    status: Status
+    guests: [GuestInput]
+}
+
+type Guest {
+    id: Float!
+    name: String
+}
+
+input GuestInput {
+    id: Float!
+    name: String
+}
+
+input UpdateInterviewInput {
+    id: String!
+    title: String
+    slug: String
+    content: String
+    date: Date
+    videoSrc: String
+    metaDescription: String
+    status: Status
+    guests: [GuestInput]
+}
+
+type PaginateInterview {
+    rows: [Interview]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Interview {
+    id: String!
+    title: String!
+    slug: String!
+    content: String!
+    date: Date!
+    videoSrc: String!
+    metaDescription: String
+    status: Status!
+    admin: Admin
+    createdAt: Date
+    guests: [Guest]
+}
+
+input InterviewFilter {
+    adminId: String
+    title: String
+    status: String
+}

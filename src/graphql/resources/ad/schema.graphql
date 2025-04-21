@@ -1,0 +1,80 @@
+# import PaginationInput from '../../type.graphql'
+# import ActiveStatus from '../../type.graphql'
+# import Admin from '../user/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+
+scalar Date
+
+type Query {
+    getAds(input: PaginationInput, filter: AdFilter): PaginateAd
+    getOneAd(input: GetOneAdInput): Ad
+    getActiveAd: Ad
+}
+
+type Mutation {
+    updateAd(input: UpdateAdInput): Ad
+    createAd(input: CreateAdInput): Ad
+    deleteAd(input: DeleteAdInput): DeleteAdResponse
+    changeAdStatus(input: ChangeAdStatusInput): Ad
+}
+
+input ChangeAdStatusInput {
+    id: String!
+    status: ActiveStatus!
+}
+
+input DeleteAdInput {
+    id: String!
+}
+
+input GetOneAdInput {
+    id: String
+    slug: String
+}
+
+type DeleteAdResponse {
+    success: Boolean!
+}
+
+input CreateAdInput {
+    title: String!
+    slug: String!
+    status: ActiveStatus
+    image: MediaInput!
+    link: String
+}
+
+input UpdateAdInput {
+    id: String!
+    title: String
+    slug: String
+    status: ActiveStatus
+    image: MediaInput
+    link: String
+}
+
+type PaginateAd {
+    rows: [Ad]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Ad {
+    id: String!
+    title: String!
+    slug: String!
+    status: ActiveStatus!
+    image: Media!
+    link: String
+}
+
+input AdFilter {
+    title: String
+    status: String
+}

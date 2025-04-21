@@ -1,0 +1,60 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getValues(input: PaginationInput, filter: ValueFilter): PaginateValue
+    getOneValue(input: GetOneValueInput): Value
+}
+
+type Mutation {
+    updateValue(input: UpdateValueInput): Value
+    createValue(input: CreateValueInput): Value
+    deleteValue(input: DeleteValueInput): DeleteValueResponse
+    changeValueStatus(input: ChangeValueStatusInput): Value
+}
+
+input ChangeValueStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteValueInput {
+    id: String!
+}
+
+input GetOneValueInput {
+    id: String!
+}
+
+type DeleteValueResponse {
+    success: Boolean!
+}
+
+input CreateValueInput {
+    title: String!
+    status: Status
+}
+
+input UpdateValueInput {
+    id: String!
+    title: String
+    status: Status
+}
+
+type PaginateValue {
+    rows: [Value]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Value {
+    id: String!
+    title: String!
+    status: Status!
+}
+
+input ValueFilter {
+    title: String
+    status: String
+}

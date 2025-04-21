@@ -1,0 +1,64 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Job from '../job/schema.graphql'
+# import Referral from '../user/schema.graphql'
+scalar Date
+
+type Query {
+    getReferreds(input: PaginationInput, filter: ReferredFilter): PaginateReferred
+    getOneReferred(input: GetOneReferredInput): Referred
+}
+
+type Mutation {
+    createReferred(input: CreateReferredInput): Referred
+    deleteReferred(input: DeleteReferredInput): DeleteReferredResponse
+}
+
+
+input DeleteReferredInput {
+    id: String!
+}
+
+input GetOneReferredInput {
+    id: String!
+}
+
+type DeleteReferredResponse {
+    success: Boolean!
+}
+
+input CreateReferredInput {
+    job: JobInput!
+    talentEmail: String!
+    talentFullName: String!
+    talentNumber: String
+    jobReferenceLink: String!
+}
+
+input JobInput {
+    id: String!
+}
+
+type PaginateReferred {
+    rows: [Referred]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Referred {
+    id: String!
+    job: Job!
+    referral: Referral!
+    talentEmail: String!
+    talentFullName: String!
+    talentNumber: String
+    jobReferenceLink: String!
+    createdAt: Date
+}
+
+input ReferredFilter {
+    talentEmail: String
+    talentFullName: String
+    talentNumber: String
+}

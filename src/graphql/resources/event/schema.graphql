@@ -1,0 +1,88 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Admin from '../user/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+
+scalar Date
+
+type Query {
+    getEvents(input: PaginationInput, filter: EventFilter): PaginateEvent
+    getOneEvent(input: GetOneEventInput): Event
+}
+
+type Mutation {
+    updateEvent(input: UpdateEventInput): Event
+    createEvent(input: CreateEventInput): Event
+    deleteEvent(input: DeleteEventInput): DeleteEventResponse
+    changeEventStatus(input: ChangeEventStatusInput): Event
+}
+
+input ChangeEventStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteEventInput {
+    id: String!
+}
+
+input GetOneEventInput {
+    id: String
+    slug: String
+}
+
+type DeleteEventResponse {
+    success: Boolean!
+}
+
+input CreateEventInput {
+    title: String!
+    slug: String!
+    content: String!
+    date: Date!
+    metaDescription: String
+    status: Status
+    categories: [UpdateCategoryInput]
+}
+
+input UpdateEventInput {
+    id: String!
+    title: String
+    slug: String
+    content: String
+    date: Date
+    metaDescription: String
+    status: Status
+    categories: [UpdateCategoryInput]
+}
+
+type PaginateEvent {
+    rows: [Event]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Event {
+    id: String!
+    title: String!
+    slug: String!
+    content: String!
+    date: Date!
+    metaDescription: String
+    status: Status!
+    admin: Admin
+    categories: [Category]
+    createdAt: Date
+}
+
+input EventFilter {
+    adminId: String
+    title: String
+    status: String
+}

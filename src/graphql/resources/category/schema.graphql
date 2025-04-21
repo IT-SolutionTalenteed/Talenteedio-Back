@@ -1,0 +1,78 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getCategories(input: PaginationInput, filter: CategoryFilter): PaginateCategory
+    getOneCategory(input: GetOneCategoryInput): Category
+}
+
+type Mutation {
+    updateCategory(input: UpdateCategoryInput): Category
+    createCategory(input: CreateCategoryInput): Category
+    deleteCategory(input: DeleteCategoryInput): DeleteCategoryResponse
+    changeCategoryStatus(input: ChangeCategoryStatusInput): Category
+}
+
+input ChangeCategoryStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteCategoryInput {
+    id: String!
+}
+
+input GetOneCategoryInput {
+    id: String!
+}
+
+type DeleteCategoryResponse {
+    success: Boolean!
+}
+
+input CreateCategoryInput {
+    name: String!
+    slug: String!
+    status: Status
+    model: Model!
+}
+
+input UpdateCategoryInput {
+    id: String!
+    name: String
+    slug: String
+    status: Status
+    model: Model
+}
+
+type PaginateCategory {
+    rows: [Category]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Category {
+    id: String!
+    name: String!
+    slug: String!
+    status: Status!
+    model: Model!
+}
+
+enum Model {
+    Job
+    Talent
+    Company
+    Job_Talent
+    Article
+    Referral
+    Event
+}
+
+input CategoryFilter {
+    name: String
+    model: String
+    status: String
+    operation: String = "AND"
+}

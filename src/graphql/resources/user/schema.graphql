@@ -1,0 +1,467 @@
+# import PaginationInput from '../../type.graphql'
+# import Payload from '../../type.graphql'
+# import Contact from '../../type.graphql'
+# import ContactWithoutEmail from '../../type.graphql'
+# import ContactInput from '../../type.graphql'
+# import ContactInputWithoutEmail from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Skill from '../skill/schema.graphql'
+# import UpdateSkillInput from '../skill/schema.graphql'
+# import Job from '../job/schema.graphql'
+# import Article from '../article/schema.graphql'
+# import UpdateArticleInput from '../article/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import Value from '../value/schema.graphql'
+# import UpdateValueInput from '../value/schema.graphql'
+# import Permission from '../permission/schema.graphql'
+# import UpdatePermissionInput from '../permission/schema.graphql'
+
+scalar Date
+scalar Upload
+
+type Query {
+    getUsers(input: PaginationInput, filter: UserFilter): PaginateUser
+    getOneUser(input: IdInput!): User
+    getTotalUsers: Int
+    getCompanies(input: PaginationInput, filter: CompanyFilter): PaginateCompany
+    getOneCompany(input: IdInput!): Company
+    getHrFirstClubs(input: PaginationInput, filter: HrFirstClubFilter): PaginateHrFirstClub
+    getOneHrFirstClub(input: IdInput!): HrFirstClub
+    getReferrals(input: PaginationInput, filter: ReferralFilter): PaginateReferral
+    getOneReferral(input: IdInput!): Referral
+    getTalents(input: PaginationInput, filter: TalentFilter): PaginateTalent
+    getOneTalent(input: IdInput!): Talent
+    getCVs(input: PaginationInput, filter: CVFilter): PaginateCV
+    getOneCV(input: IdInput!): CV
+    generateCV(input: IdInput!): String
+    getLMs(input: PaginationInput, filter: LMFilter): PaginateLM
+    getOneLM(input: IdInput!): LM
+    generateLM(input: IdInput!): String
+}
+
+type Mutation {
+    createUser(input: CreateUserInput): User
+    updateUser(input: UpdateUserInput): User
+    deleteUser(input: IdInput!): Payload
+    updateCompany(input: UpdateCompanyInput): Company
+    createCompany(input: CreateCompanyInput): Company
+    deleteCompany(input: IdInput!): Payload
+    updateReferral(input: UpdateReferralInput): Referral
+    createReferral(input: CreateReferralInput): Referral
+    deleteReferral(input: IdInput!): Payload
+    updateHrFirstClub(input: UpdateHrFirstClubInput): HrFirstClub
+    createHrFirstClub(input: CreateHrFirstClubInput): HrFirstClub
+    deleteHrFirstClub(input: IdInput!): Payload
+    updateTalent(input: UpdateTalentInput): Talent
+    createTalent(input: CreateTalentInput): Talent
+    deleteTalent(input: IdInput!): Payload
+    updateCV(input: UpdateCVInput): CV
+    createCV(input: CreateCVInput): CV
+    uploadCV(input: UploadCVInput): CV
+    deleteCV(input: IdInput!): Payload
+    updateLM(input: UpdateLMInput): LM
+    createLM(input: CreateLMInput): LM
+    deleteLM(input: IdInput!): Payload
+}
+
+type PaginateUser {
+    rows: [User]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateCompany {
+    rows: [Company]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateReferral {
+    rows: [Referral]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateHrFirstClub {
+    rows: [HrFirstClub]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateTalent {
+    rows: [Talent]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateCV {
+    rows: [CV]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateLM {
+    rows: [LM]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type User {
+    id: String!
+    email: String!
+    firstname: String
+    lastname: String
+    name: String
+    roles: [Role]
+    admin: Admin
+    referral: Referral
+    company: Company
+    talent: Talent
+    isVerified: Boolean
+    validateAt: Date
+    createdAt: Date
+}
+
+type Role {
+    id: String!
+    name: String!
+    title: String!
+}
+
+type Admin {
+    id: String!
+    user: User
+}
+
+type Talent {
+    id: String!
+    user: User!
+    status: Status!
+    title: String
+    category: Category
+    contact: ContactWithoutEmail
+    skills: [Skill]
+    experience: Int
+    gender: GENDER
+    educationLevel: EDUCATIONLEVEL
+    cvs: [CV]
+    lms: [LM]
+    consent: Media
+    createdAt: Date
+    values: [Value]
+}
+
+type CV {
+    id: String!
+    title: String!
+    description: String!
+    skills: [_Skill]
+    diplomas: [Diploma]
+    languages: [Language]
+    experiences: [Experience]
+    talent: Talent!
+    file: Media
+    createdAt: Date
+}
+
+type Diploma {
+    id: Float!
+    text: String
+}
+
+type Language {
+    id: Float!
+    text: String
+}
+
+type _Skill {
+    id: Float!
+    text: String
+}
+
+type Experience {
+    id: Float!
+    title: String
+    description: String
+    start: Date
+    end: Date
+}
+
+type LM {
+    id: String!
+    title: String!
+    content: String!
+    talent: Talent!
+    createdAt: Date
+}
+
+enum GENDER {
+    male
+    female
+    other
+}
+
+enum EDUCATIONLEVEL {
+    certificate
+    diploma
+    associate
+    bachelor
+    master
+    professional
+}
+
+type Company {
+    id: String!
+    company_name: String!
+    status: Status!
+    user: User
+    contact: Contact
+    articles: [Article]
+    jobs: [Job]
+    logo: Media
+    category: Category
+    permission: Permission
+    createdAt: Date
+}
+
+type Referral {
+    id: String!
+    title: String
+    status: Status!
+    user: User
+    category: Category
+    contact: ContactWithoutEmail
+    createdAt: Date
+}
+
+type HrFirstClub {
+    id: String!
+    companyName: String!
+    function: String!
+    membershipReason: String!
+    status: Status!
+    user: User
+    contact: ContactWithoutEmail
+    createdAt: Date
+    logo: Media
+}
+
+input CreateUserInput {
+    email: String!
+    firstname: String!
+    lastname: String!
+    password: String!
+    role: String
+}
+
+input UpdateUserInput {
+    id: String!
+    email: String
+    firstname: String
+    lastname: String
+    password: String
+    confirmPassword: String
+    oldPassword: String
+    role: String
+}
+
+input IdInput {
+    id: String!
+}
+
+input CreateCompanyInput {
+    company_name: String!
+    status: Status
+    user: UpdateUserInput!
+    contact: ContactInput!
+    logo: MediaInput
+    category: UpdateCategoryInput
+    permission: UpdatePermissionInput
+}
+
+input UpdateCompanyInput {
+    id: String!
+    company_name: String
+    user: UpdateUserInput
+    status: Status
+    contact: ContactInput
+    logo: MediaInput
+    category: UpdateCategoryInput
+    permission: UpdatePermissionInput
+}
+
+input CreateReferralInput {
+    title: String!
+    status: Status
+    user: UpdateUserInput!
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail!
+}
+
+input UpdateReferralInput {
+    id: String!
+    status: Status
+    title: String
+    user: UpdateUserInput
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail
+}
+
+
+input CreateHrFirstClubInput {
+    companyName: String!
+    function: String!
+    membershipReason: String!
+    status: Status
+    user: UpdateUserInput!
+    contact: ContactInputWithoutEmail!
+    logo: MediaInput
+}
+
+input UpdateHrFirstClubInput {
+    id: String!
+    status: Status
+    companyName: String
+    function: String
+    membershipReason: String
+    user: UpdateUserInput
+    contact: ContactInputWithoutEmail
+    logo: MediaInput
+}
+
+input CreateTalentInput {
+    status: Status!
+    user: UpdateUserInput!
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail!
+    values: [UpdateValueInput]!
+    skills: [UpdateSkillInput]
+    experience: Int
+    gender: GENDER
+    educationLevel: EDUCATIONLEVEL
+}
+
+input UpdateTalentInput {
+    id: String!
+    status: Status
+    title: String
+    user: UpdateUserInput
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail
+    skills: [UpdateSkillInput]
+    values: [UpdateValueInput]
+    experience: Int
+    gender: GENDER
+    educationLevel: EDUCATIONLEVEL
+}
+
+input CreateCVInput {
+    title: String!
+    description: String!
+    skills: [SkillInput]
+    diplomas: [DiplomaInput]
+    languages: [LanguageInput]
+    experiences: [ExperienceInput]
+}
+
+input UploadCVInput {
+    title: String!
+    file: MediaInput!
+}
+
+input UpdateCVInput {
+    id: String!
+    title: String
+    description: String
+    skills: [SkillInput]
+    diplomas: [DiplomaInput]
+    languages: [LanguageInput]
+    experiences: [ExperienceInput]
+}
+
+input SkillInput {
+    id: Float!
+    text: String
+}
+
+input DiplomaInput {
+    id: Float!
+    text: String
+}
+
+input LanguageInput {
+    id: Float!
+    text: String
+}
+
+input ExperienceInput {
+    id: Float!
+    title: String
+    description: String
+    start: Date
+    end: Date
+}
+
+input CreateLMInput {
+    title: String!
+    content: String!
+}
+
+input UpdateLMInput {
+    id: String!
+    title: String
+    content: String
+}
+
+enum RoleEnum {
+    admin
+    referral
+    company
+    talent
+}
+
+input UserFilter {
+    roles: [RoleEnum]
+    name: String
+    email: String
+    withoutRole: Boolean
+}
+
+input CompanyFilter {
+    name: String
+    status: String
+}
+
+input ReferralFilter {
+    name: String
+    status: String
+}
+
+input HrFirstClubFilter {
+    companyName: String
+    status: String
+}
+input TalentFilter {
+    name: String
+    status: String
+}
+
+input CVFilter {
+    title: String
+    talentId: String
+}
+
+input LMFilter {
+    title: String
+    talentId: String
+}

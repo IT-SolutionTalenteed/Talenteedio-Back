@@ -1,0 +1,60 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getSkills(input: PaginationInput, filter: SkillFilter): PaginateSkill
+    getOneSkill(input: GetOneSkillInput): Skill
+}
+
+type Mutation {
+    updateSkill(input: UpdateSkillInput): Skill
+    createSkill(input: CreateSkillInput): Skill
+    deleteSkill(input: DeleteSkillInput): DeleteSkillResponse
+    changeSkillStatus(input: ChangeSkillStatusInput): Skill
+}
+
+input ChangeSkillStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteSkillInput {
+    id: String!
+}
+
+input GetOneSkillInput {
+    id: String!
+}
+
+type DeleteSkillResponse {
+    success: Boolean!
+}
+
+input CreateSkillInput {
+    name: String!
+    status: Status
+}
+
+input UpdateSkillInput {
+    id: String!
+    name: String
+    status: Status
+}
+
+type PaginateSkill {
+    rows: [Skill]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Skill {
+    id: String!
+    name: String!
+    status: Status!
+}
+
+input SkillFilter {
+    name: String
+    status: String
+}

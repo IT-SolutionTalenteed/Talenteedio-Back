@@ -1,0 +1,101 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Admin from '../user/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import UpdateCompanyInput from '../user/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+
+scalar Date
+
+type Query {
+    getArticles(input: PaginationInput, filter: ArticleFilter): PaginateArticle
+    getOneArticle(input: GetOneArticleInput): Article
+}
+
+type Mutation {
+    updateArticle(input: UpdateArticleInput): Article
+    createArticle(input: CreateArticleInput): Article
+    deleteArticle(input: DeleteArticleInput): DeleteArticleResponse
+    changeArticleStatus(input: ChangeArticleStatusInput): Article
+}
+
+input ChangeArticleStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteArticleInput {
+    id: String!
+}
+
+input GetOneArticleInput {
+    id: String
+    slug: String
+}
+
+type DeleteArticleResponse {
+    success: Boolean!
+}
+
+input CreateArticleInput {
+    title: String!
+    slug: String!
+    content: String!
+    publicContent: String
+    metaDescription: String
+    status: Status
+    image: MediaInput
+    categories: [UpdateCategoryInput]
+    isPremium: Boolean
+    company: UpdateCompanyInput!
+}
+
+input UpdateArticleInput {
+    id: String!
+    title: String
+    slug: String
+    content: String
+    publicContent: String
+    isPremium: Boolean
+    metaDescription: String
+    status: Status
+    image: MediaInput
+    categories: [UpdateCategoryInput]
+    company: UpdateCompanyInput
+}
+
+type PaginateArticle {
+    rows: [Article]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Article {
+    id: String!
+    title: String!
+    slug: String!
+    content: String!
+    publicContent: String
+    isPremium: Boolean
+    metaDescription: String
+    status: Status!
+    admin: Admin
+    company: Company
+    image: Media
+    categories: [Category]
+    createdAt: Date
+}
+
+input ArticleFilter {
+    adminId: String
+    companyId: String
+    title: String
+    status: String
+    category: String
+    isPremium: Boolean
+}

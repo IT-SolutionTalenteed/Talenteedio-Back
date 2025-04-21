@@ -1,0 +1,8 @@
+core
+node_modules
+build
+.env
+public/uploads
+admin/*
+!admin/.gitkeep
+exports/*

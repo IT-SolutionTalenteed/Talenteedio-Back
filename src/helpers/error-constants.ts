@@ -1,0 +1,6 @@
+export const FORBIDDEN = 'FORBIDDEN';
+export const UNAUTHORIZED = 'UNAUTHORIZED';
+export const BAD_REQUEST = 'BAD_REQUEST';
+export const INTERNAL_ERROR = 'INTERNAL_ERROR';
+export const NOT_FOUND = 'NOT_FOUND';
+export const PAYMENT_REQUIRED = 'PAYMENT_REQUIRED';

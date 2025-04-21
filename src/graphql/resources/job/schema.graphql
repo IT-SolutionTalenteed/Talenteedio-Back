@@ -1,0 +1,237 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Media from '../media/schema.graphql'
+# import Talent from '../user/schema.graphql'
+# import Referral from '../user/schema.graphql'
+# import CV from '../user/schema.graphql'
+# import LM from '../user/schema.graphql'
+# import Location from '../location/schema.graphql'
+# import JobType from '../jobType/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import Skill from '../skill/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import UpdateLocationInput from '../location/schema.graphql'
+# import UpdateJobTypeInput from '../jobType/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateSkillInput from '../skill/schema.graphql'
+# import UpdateCompanyInput from '../user/schema.graphql'
+# import Value from '../value/schema.graphql'
+# import UpdateValueInput from '../value/schema.graphql'
+
+scalar Date
+
+type Query {
+    getJobs(input: PaginationInput, filter: JobFilter): PaginateJob
+    getOneJob(input: GetOneJobInput): Job
+    getApplications(input: PaginationInput, filter: ApplicationFilter): PaginateApplication
+    getOneApplication(input: GetOneJobInput): Application
+}
+
+type Mutation {
+    updateJob(input: UpdateJobInput): Job
+    createJob(input: CreateJobInput): Job
+    deleteJob(input: DeleteJobInput): Payload
+    changeJobStatus(input: ChangeJobStatusInput): Job
+    applyForJob(input: ApplyJobInput): Payload
+    deleteApplication(input: DeleteJobInput): Payload
+    changeApplicationStatus(input: ChangeApplicationStatusInput): Payload
+    updateMultipleJobs(input: UpdateMultipleJobsInput): Payload
+}
+
+type PaginateJob {
+    rows: [Job]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type PaginateApplication {
+    rows: [Application]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Job {
+    id: String!
+    title: String!
+    slug: String!
+    status: Status!
+    content: String!
+    metaDescription: String
+    expirationDate: Date!
+    hours: Int
+    hourType: HOURTYPE
+    gender: String
+    salaryMin: Float
+    salaryMax: Float
+    salaryType: SALARYTYPE
+    experience: Int
+    recruitmentNumber: Int
+    isFeatured: Boolean!
+    isUrgent: Boolean!
+    isSharable: Boolean!
+    featuredImage: Media
+    location: Location
+    jobType: JobType
+    category: Category
+    skills: [Skill]
+    company: Company!
+    createdAt: Date
+    updatedAt: Date
+    referralLink: String
+    hasApplied: Boolean
+    applications: [Application]
+    values: [Value]
+}
+
+type Application {
+    id: String!
+    status: String!
+    job: Job!
+    talent: Talent!
+    referral: Referral
+    referral_recomandation: String
+    cv: CV
+    lm: LM
+    createdAt: Date
+}
+
+enum HOURTYPE {
+    day
+    week
+    month
+    year
+}
+
+enum SALARYTYPE {
+    hourly
+    daily
+    weekly
+    monthly
+    yearly
+}
+
+input JobFilter {
+    adminId: String
+    companyId: String
+    search: String
+    status: String
+    location: String
+    category: String
+    salaryMin: Int
+    salaryMax: Int
+    experienceLevels: Int
+    jobTypes: [String]
+    datePosted: Int
+    isFeatured: Boolean
+}
+
+input ApplicationFilter {
+    status: String
+    jobId: String
+}
+
+input GetOneApplicationInput {
+    id: String!
+}
+
+input GetOneJobInput {
+    id: String
+    slug: String
+}
+
+input DeleteJobInput {
+    id: String!
+}
+
+input ApplyJobInput {
+    jobId: String!
+    cvId: String
+    lmId: String
+}
+
+type Payload {
+    success: Boolean!
+}
+
+input ChangeJobStatusInput {
+    id: String!
+    status: Status!
+}
+
+input ChangeApplicationStatusInput {
+    id: String!
+    status: ApplicationStatus!
+    rejection_reason: String
+}
+
+enum ApplicationStatus {
+    in_review
+    validated
+    denied
+    selected
+    hired
+}
+
+input CreateJobInput {
+    title: String!
+    slug: String!
+    status: Status
+    content: String!
+    metaDescription: String
+    expirationDate: Date!
+    hours: Int
+    hourType: HOURTYPE
+    gender: String
+    salaryMin: Float
+    salaryMax: Float
+    salaryType: SALARYTYPE
+    experience: Int
+    recruitmentNumber: Int
+    isFeatured: Boolean
+    isUrgent: Boolean
+    isSharable: Boolean
+    featuredImage: MediaInput
+    location: UpdateLocationInput
+    jobType: UpdateJobTypeInput
+    category: UpdateCategoryInput
+    skills: [UpdateSkillInput]
+    values: [UpdateValueInput]
+    company: UpdateCompanyInput
+}
+
+input UpdateJobInput {
+    id: String!
+    title: String
+    slug: String
+    status: Status
+    content: String
+    metaDescription: String
+    expirationDate: Date
+    hours: Int
+    hourType: HOURTYPE
+    gender: String
+    salaryMin: Float
+    salaryMax: Float
+    salaryType: SALARYTYPE
+    experience: Int
+    recruitmentNumber: Int
+    isFeatured: Boolean
+    isUrgent: Boolean
+    isSharable: Boolean
+    featuredImage: MediaInput
+    location: UpdateLocationInput
+    jobType: UpdateJobTypeInput
+    category: UpdateCategoryInput
+    skills: [UpdateSkillInput]
+    values: [UpdateValueInput]
+    company: UpdateCompanyInput
+}
+
+input UpdateMultipleJobsInput {
+    expirationDate: Date!
+    includedIds: [String]
+    excludedIds: [String]
+}

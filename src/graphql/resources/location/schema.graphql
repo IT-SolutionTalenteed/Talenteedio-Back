@@ -1,0 +1,80 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getLocations(input: PaginationInput, filter: LocationFilter): PaginateLocation
+    getOneLocation(input: GetOneLocationInput): Location
+}
+
+type Mutation {
+    updateLocation(input: UpdateLocationInput): Location
+    createLocation(input: CreateLocationInput): Location
+    deleteLocation(input: DeleteLocationInput): DeleteLocationResponse
+    changeLocationStatus(input: ChangeLocationStatusInput): Location
+}
+
+input ChangeLocationStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeleteLocationInput {
+    id: String!
+}
+
+input GetOneLocationInput {
+    id: String!
+}
+
+type DeleteLocationResponse {
+    success: Boolean!
+}
+
+input CreateLocationInput {
+    name: String!
+    status: Status
+    address: AddressInput!
+}
+
+input UpdateLocationInput {
+    id: String!
+    name: String
+    status: Status
+    address: AddressInput
+}
+
+type PaginateLocation {
+    rows: [Location]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Location {
+    id: String!
+    name: String!
+    status: Status!
+    address: Address
+}
+
+input LocationFilter {
+    name: String
+    status: String
+}
+
+type Address {
+    id: String!
+    line: String!
+    postalCode: String!
+    city: String!
+    state: String
+    country: String!
+}
+
+input AddressInput {
+    line: String!
+    postalCode: String!
+    city: String!
+    state: String
+    country: String!
+}

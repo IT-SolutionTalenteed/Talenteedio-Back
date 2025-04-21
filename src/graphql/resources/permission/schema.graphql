@@ -1,0 +1,60 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+
+type Query {
+    getPermissions(input: PaginationInput, filter: PermissionFilter): PaginatePermission
+    getOnePermission(input: GetOnePermissionInput): Permission
+}
+
+type Mutation {
+    updatePermission(input: UpdatePermissionInput): Permission
+    createPermission(input: CreatePermissionInput): Permission
+    deletePermission(input: DeletePermissionInput): DeletePermissionResponse
+}
+
+
+input DeletePermissionInput {
+    id: String!
+}
+
+input GetOnePermissionInput {
+    id: String!
+}
+
+type DeletePermissionResponse {
+    success: Boolean!
+}
+
+input CreatePermissionInput {
+    title: String!
+    numberOfJobsPerYear: Int!
+    numberOfArticlesPerYear: Int!
+    validityPeriodOfAJob: Int!
+}
+
+input UpdatePermissionInput {
+    id: String!
+    title: String
+    numberOfJobsPerYear: Int
+    numberOfArticlesPerYear: Int
+    validityPeriodOfAJob: Int
+}
+
+type PaginatePermission {
+    rows: [Permission]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Permission {
+    id: String!
+    title: String!
+    numberOfJobsPerYear: Int!
+    numberOfArticlesPerYear: Int!
+    validityPeriodOfAJob: Int!
+}
+
+input PermissionFilter {
+    title: String
+}

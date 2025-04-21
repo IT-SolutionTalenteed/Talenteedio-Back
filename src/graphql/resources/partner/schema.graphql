@@ -1,0 +1,79 @@
+# import PaginationInput from '../../type.graphql'
+# import Status from '../../type.graphql'
+# import Admin from '../user/schema.graphql'
+# import Company from '../user/schema.graphql'
+# import Media from '../media/schema.graphql'
+# import MediaInput from '../media/schema.graphql'
+# import Category from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+# import UpdateCategoryInput from '../category/schema.graphql'
+
+scalar Date
+
+type Query {
+    getPartners(input: PaginationInput, filter: PartnerFilter): PaginatePartner
+    getOnePartner(input: GetOnePartnerInput): Partner
+}
+
+type Mutation {
+    updatePartner(input: UpdatePartnerInput): Partner
+    createPartner(input: CreatePartnerInput): Partner
+    deletePartner(input: DeletePartnerInput): DeletePartnerResponse
+    changePartnerStatus(input: ChangePartnerStatusInput): Partner
+}
+
+input ChangePartnerStatusInput {
+    id: String!
+    status: Status!
+}
+
+input DeletePartnerInput {
+    id: String!
+}
+
+input GetOnePartnerInput {
+    id: String
+    slug: String
+}
+
+type DeletePartnerResponse {
+    success: Boolean!
+}
+
+input CreatePartnerInput {
+    title: String!
+    slug: String!
+    status: Status
+    image: MediaInput!
+    link: String
+}
+
+input UpdatePartnerInput {
+    id: String!
+    title: String
+    slug: String
+    status: Status
+    image: MediaInput
+    link: String
+}
+
+type PaginatePartner {
+    rows: [Partner]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type Partner {
+    id: String!
+    title: String!
+    slug: String!
+    status: Status!
+    image: Media!
+    link: String
+}
+
+input PartnerFilter {
+    title: String
+    status: String
+}
