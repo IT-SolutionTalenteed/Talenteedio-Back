@@ -64,7 +64,8 @@ const serve = async () => {
                 httpOnly: ['production', 'pre-production'].includes(process.env.NODE_ENV as string) ? true : false,
                 secure: ['production', 'pre-production'].includes(process.env.NODE_ENV as string) ? true : false,
                 ...(['production', 'pre-production'].includes(process.env.NODE_ENV as string) ? { domain: process.env.DOMAIN } : {}),
-                ...(process.env.NODE_ENV === 'pre-production' ? { sameSite: 'none' } : { sameSite: 'strict' }),
+                // En développement, utiliser 'lax' pour permettre le partage entre localhost:4200 et localhost:5173
+                ...(process.env.NODE_ENV === 'pre-production' ? { sameSite: 'none' } : { sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'strict' }),
             },
         });
 
