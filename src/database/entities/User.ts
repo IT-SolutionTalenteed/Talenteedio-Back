@@ -1,12 +1,14 @@
 import { HrFirstClub } from './HrFirstClub';
-import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, OneToOne, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, AfterLoad, AfterUpdate } from 'typeorm';
+import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, OneToOne, CreateDateColumn, UpdateDateColumn, BeforeInsert, BeforeUpdate, AfterLoad, AfterUpdate, ManyToOne, JoinColumn } from 'typeorm';
 import bcrypt from 'bcrypt';
 
 import { Admin } from './Admin';
 import { Referral } from './Referral';
+import { Freelance } from './Freelance';
 import { Company } from './Company';
 import { Talent } from './Talent';
 import { Role } from './Role';
+import { Media } from './Media';
 
 @Entity()
 export class User extends BaseEntity {
@@ -58,6 +60,13 @@ export class User extends BaseEntity {
     @OneToOne(() => Talent, (talent) => talent.user, { onDelete: 'CASCADE' })
     talent: Talent;
 
+    @OneToOne(() => Freelance, (freelance) => freelance.user, { onDelete: 'CASCADE' })
+    freelance: Freelance;
+
+    @ManyToOne(() => Media, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn()
+    profilePicture: Media;
+
     async checkPasswd(passwd: string): Promise<boolean> {
         return await bcrypt.compare(passwd, this.password);
     }
@@ -99,6 +108,7 @@ export class User extends BaseEntity {
             Admin.createQueryBuilder('admin').leftJoinAndSelect('admin.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Company.createQueryBuilder('company').leftJoinAndSelect('company.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Talent.createQueryBuilder('talent').leftJoinAndSelect('talent.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
+            Freelance.createQueryBuilder('freelance').leftJoinAndSelect('freelance.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Referral.createQueryBuilder('referral').leftJoinAndSelect('referral.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             HrFirstClub.createQueryBuilder('hr_first_club').leftJoinAndSelect('hr_first_club.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             //

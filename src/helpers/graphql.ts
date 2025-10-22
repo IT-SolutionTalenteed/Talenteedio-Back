@@ -101,7 +101,9 @@ export const processUpload = async (file: FileUpload, allowedType = 'image', max
     const directoryPath = path.join(__dirname, '..', '..', 'public', 'uploads');
     const filepath = path.join(directoryPath, `${id}-${name}`);
     const urlPath = `public/uploads/${id}-${name}`;
-    const fileUrl = new URL(path.join(process.env.HOST as string, urlPath)).toString();
+    // Construire l'URL correctement sans path.join pour éviter les problèmes de séparateurs
+    const host = (process.env.HOST as string).replace(/\/$/, ''); // Enlever le slash final si présent
+    const fileUrl = `${host}/${urlPath}`;
     // Save the file to disk
     const bufferData = Buffer.concat(blobParts);
 

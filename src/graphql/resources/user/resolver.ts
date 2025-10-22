@@ -3,8 +3,8 @@ import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 
-import { Address, Admin, Company, Contact, Referral, Talent, User, Skill, CV, LM, Media } from '../../../database/entities';
-import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
+import { Address, Admin, Company, Contact, Referral, Freelance, Talent, User, Skill, CV, LM, Media, Value } from '../../../database/entities';
+import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateFreelanceInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateFreelanceInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
 import { getResources, returnError } from '../../../helpers/graphql';
 
 import guard from '../../middleware/graphql-guard';
@@ -14,11 +14,12 @@ import AppDataSource from '../../../database';
 import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 import { generateCVtoPdf, generateConsentForTalent, generateLMtoPdf } from '../../../helpers/generatePdf';
 
-const relations = ['admin', 'company', 'talent', 'referral'];
+const relations = ['admin', 'company', 'talent', 'freelance', 'referral', 'profilePicture'];
 const companyRelations = ['user', 'contact.address', 'articles', 'logo', 'category', 'jobs.applications', 'permission'];
 const referralRelations = ['user', 'contact.address', 'category', 'applications'];
 const hrFirstClubRelations = ['user', 'contact.address', 'logo'];
 const talentRelations = ['user', 'contact.address', 'category', 'skills', 'applications', 'cvs', 'lms', 'consent', 'values'];
+const freelanceRelations = ['user', 'contact.address', 'category', 'applications', 'cvs', 'lms', 'values'];
 
 const resolver = {
     Query: {
@@ -293,6 +294,56 @@ const resolver = {
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        getFreelances: async (_: any, args: { input: PaginationInput; filter: { name: string; status: string } }): Promise<Resource<Freelance>> => {
+            try {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let filters: any;
+
+                if (args.filter) {
+                    filters = args.filter.name ? { where: { title: Like(`%${args.filter.name}%`) } } : { where: {} };
+
+                    if (args.filter.status) {
+                        filters.where.status = args.filter.status;
+                    }
+                }
+
+                const res = (await getResources(Freelance, args.input, freelanceRelations, filters)) as Resource<Freelance>;
+
+                return res;
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        getOneFreelance: async (_: any, args: { input: { id: string } }, context: any): Promise<Freelance> => {
+            try {
+                const freelance = await Freelance.findOne({
+                    where: {
+                        id: args.input.id,
+                    },
+                    relations: freelanceRelations,
+                });
+
+                if (freelance) {
+                    const user = context.req.session.user as User;
+
+                    if (user.freelance && freelance.id !== user.freelance.id) {
+                        throw createGraphQLError('Access denied for this freelance', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+                    }
+
+                    return freelance;
+                }
+
+                throw createGraphQLError('Freelance not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         getCVs: async (_: any, args: { input: PaginationInput; filter: { title: string; talentId: string } }, context: any): Promise<Resource<CV>> => {
             try {
                 const loggedUser = context.req.session.user as User;
@@ -513,6 +564,19 @@ const resolver = {
                     if (args.input?.role === 'admin' && !user.roles?.length) {
                         updatedUser.admin = new Admin();
                         await queryRunner.manager.save(updatedUser.admin);
+                    }
+
+                    // Handle profile picture
+                    if (args.input.profilePicture !== undefined) {
+                        if (args.input.profilePicture?.id) {
+                            const media = await Media.findOne({ where: { id: args.input.profilePicture.id } });
+                            if (media) {
+                                updatedUser.profilePicture = media;
+                            }
+                        } else {
+                            // @ts-ignore - Allow setting null to remove profile picture
+                            updatedUser.profilePicture = null;
+                        }
                     }
 
                     await queryRunner.manager.save(updatedUser);
@@ -1099,6 +1163,138 @@ const resolver = {
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        createFreelance: async (_: any, args: { input: CreateFreelanceInput }): Promise<Freelance> => {
+            const queryRunner = AppDataSource.createQueryRunner();
+
+            await queryRunner.startTransaction();
+
+            try {
+                const freelance = Object.assign(new Freelance(), { ...args.input, contact: undefined }) as Freelance;
+
+                const contact = Contact.create(args.input.contact);
+
+                const address = Address.create(args.input.contact.address);
+                await queryRunner.manager.save(address);
+                contact.address = address;
+
+                await queryRunner.manager.save(contact);
+
+                freelance.contact = contact;
+
+                await queryRunner.manager.save(freelance);
+
+                const user = (await User.findOne({ where: { id: args.input.user.id } })) as User;
+
+                user.validateAt = new Date();
+
+                await queryRunner.manager.save(user);
+
+                await queryRunner.commitTransaction();
+
+                return freelance;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                await queryRunner.rollbackTransaction();
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        updateFreelance: async (_: any, args: { input: UpdateFreelanceInput }, context: any): Promise<Freelance> => {
+            const queryRunner = AppDataSource.createQueryRunner();
+
+            await queryRunner.startTransaction();
+
+            try {
+                const freelance = await Freelance.findOne({
+                    where: {
+                        id: args.input.id,
+                    },
+                    relations: freelanceRelations,
+                });
+
+                if (freelance) {
+                    const user = context.req.session.user as User;
+
+                    if (!user.admin && (!user.freelance || freelance.id !== user.freelance.id)) {
+                        throw createGraphQLError('Access denied for this freelance', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+                    }
+
+                    if (args.input.contact) {
+                        if (freelance.contact) {
+                            if (args.input.contact.address) {
+                                if (freelance.contact.address) {
+                                    freelance.contact.address = Object.assign(freelance.contact.address, args.input.contact.address) as Address;
+                                    await queryRunner.manager.save(freelance.contact.address);
+                                } else {
+                                    const address = Address.create(args.input.contact.address);
+                                    await queryRunner.manager.save(address);
+
+                                    freelance.contact.address = address;
+                                }
+                            }
+
+                            freelance.contact = Object.assign(freelance.contact, { ...args.input.contact, address: undefined }) as Contact;
+                            await queryRunner.manager.save(freelance.contact);
+                        } else {
+                            const contact = Contact.create(args.input.contact);
+
+                            const address = Address.create(args.input.contact.address);
+                            await queryRunner.manager.save(address);
+
+                            contact.address = address;
+                            await queryRunner.manager.save(contact);
+
+                            freelance.contact = contact;
+                            await queryRunner.manager.save(freelance);
+                        }
+                    }
+
+                    Object.assign(freelance, { ...args.input, contact: undefined }) as Freelance;
+                    await queryRunner.manager.save(freelance);
+
+                    await queryRunner.commitTransaction();
+
+                    return freelance;
+                }
+
+                throw createGraphQLError('Freelance not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                await queryRunner.rollbackTransaction();
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        deleteFreelance: async (_: any, args: { input: { id: string } }, context: any): Promise<Payload> => {
+            try {
+                const freelance = await Freelance.findOne({
+                    where: {
+                        id: args.input.id,
+                    },
+                    relations: freelanceRelations,
+                });
+
+                if (freelance) {
+                    const user = context.req.session.user as User;
+
+                    if (!user.admin && (!user.freelance || freelance?.id !== user.freelance.id)) {
+                        throw createGraphQLError('Access denied for this freelance', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+                    }
+
+                    const result = await Freelance.delete(args.input.id);
+
+                    if (result.affected === 1) {
+                        return { success: true };
+                    }
+                }
+
+                throw createGraphQLError('Freelance not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         createCV: async (_: any, args: { input: CreateCVInput }, context: any): Promise<CV> => {
             const queryRunner = AppDataSource.createQueryRunner();
 
@@ -1334,7 +1530,9 @@ const resolversComposition: any = {
     'Query.getOneHrFirstClub': [guard(['admin', 'hr-first-club'])],
     'Query.getTalents': [guard(['admin'])],
     'Query.getOneTalent': [guard(['admin', 'talent'])],
-    'Query.getCVs': [guard(['talent', 'admin'])],
+    'Query.getFreelances': [guard(['admin'])],
+    'Query.getOneFreelance': [guard(['admin', 'freelance'])],
+    'Query.getCVs': [guard(['talent', 'freelance', 'admin'])],
     'Query.getOneCV': [guard(['talent', 'admin'])],
     'Query.generateCV': [guard(['admin', 'talent', 'company', 'referral'])],
     'Query.getLMs': [guard(['talent', 'admin'])],
@@ -1355,7 +1553,10 @@ const resolversComposition: any = {
     'Mutation.createTalent': [guard(['admin'])],
     'Mutation.updateTalent': [guard(['admin', 'talent'])],
     'Mutation.deleteTalent': [guard(['admin', 'talent'])],
-    'Mutation.createCV': [guard(['talent'])],
+    'Mutation.createFreelance': [guard(['admin'])],
+    'Mutation.updateFreelance': [guard(['admin', 'freelance'])],
+    'Mutation.deleteFreelance': [guard(['admin', 'freelance'])],
+    'Mutation.createCV': [guard(['talent', 'freelance'])],
     'Mutation.updateCV': [guard(['talent', 'admin'])],
     'Mutation.deleteCV': [guard(['talent', 'admin'])],
     'Mutation.createLM': [guard(['talent'])],

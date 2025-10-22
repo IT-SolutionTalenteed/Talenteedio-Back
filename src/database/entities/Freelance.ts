@@ -1,22 +1,7 @@
 import { BaseEntity, BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { Role, Category, User, Contact, Skill, Application, CV, LM, Media, Value } from '.';
+import { Role, User, Category, Contact, Application, Value, CV, LM } from '.';
 import { STATUS } from './Status';
-
-export enum GENDER {
-    MALE = 'male',
-    FEMALE = 'female',
-    OTHER = 'other',
-}
-
-export enum EDUCATIONLEVEL {
-    CERTIFICATE = 'certificate',
-    DIPLOMA = 'diploma',
-    ASSOCIATE = 'associate',
-    BACHELOR = 'bachelor',
-    MASERT = 'master',
-    PROFESSIONAL = 'professional',
-}
 
 export enum WORKMODE {
     REMOTE = 'remote',
@@ -25,14 +10,14 @@ export enum WORKMODE {
 }
 
 @Entity()
-export class Talent extends BaseEntity {
+export class Freelance extends BaseEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
     @ManyToOne(() => Role)
     role: Role;
 
-    @OneToOne(() => User, (user) => user.talent, {
+    @OneToOne(() => User, (user) => user.freelance, {
         onDelete: 'CASCADE',
     })
     @JoinColumn()
@@ -41,12 +26,6 @@ export class Talent extends BaseEntity {
     @Column({ nullable: true })
     title: string;
 
-    @Column({ type: 'enum', enum: GENDER, nullable: true })
-    gender: GENDER;
-
-    @Column({ nullable: true })
-    experience: number;
-
     @Column({
         type: 'enum',
         enum: STATUS,
@@ -54,44 +33,25 @@ export class Talent extends BaseEntity {
     })
     status: STATUS;
 
-    @Column({ type: 'enum', enum: EDUCATIONLEVEL, nullable: true })
-    educationLevel: EDUCATIONLEVEL;
+    @ManyToOne(() => Category)
+    category: Category;
 
     @OneToOne(() => Contact, { onDelete: 'CASCADE' })
     @JoinColumn()
     contact: Contact;
 
-    @ManyToOne(() => Category)
-    category: Category;
-
     @ManyToMany(() => Value)
     @JoinTable()
     values: Value[];
 
-    @ManyToMany(() => Skill)
-    @JoinTable()
-    skills: Skill[];
-
-    @BeforeInsert()
-    @BeforeUpdate()
-    async setDefaultRole() {
-        if (!this.role) {
-            const role = (await Role.findOne({ where: { name: 'talent' } })) as Role;
-            this.role = role;
-        }
-    }
-
-    @OneToMany(() => Application, (application) => application.talent)
+    @OneToMany(() => Application, (application) => application.freelance)
     applications?: Application[];
 
-    @OneToMany(() => CV, (cv) => cv.talent)
+    @OneToMany(() => CV, (cv) => cv.freelance)
     cvs: CV[];
 
-    @OneToMany(() => LM, (lm) => lm.talent)
+    @OneToMany(() => LM, (lm) => lm.freelance)
     lms: LM[];
-
-    @ManyToOne(() => Media, { onDelete: 'CASCADE' })
-    consent: Media;
 
     // Nouveaux champs
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
@@ -108,6 +68,15 @@ export class Talent extends BaseEntity {
 
     @Column({ type: 'enum', enum: WORKMODE, nullable: true })
     workMode: WORKMODE;
+
+    @BeforeInsert()
+    @BeforeUpdate()
+    async setDefaultRole() {
+        if (!this.role) {
+            const role = (await Role.findOne({ where: { name: 'freelance' } })) as Role;
+            this.role = role;
+        }
+    }
 
     @CreateDateColumn()
     createdAt: Date; // Creation date

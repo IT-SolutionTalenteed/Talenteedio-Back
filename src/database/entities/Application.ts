@@ -1,6 +1,6 @@
 import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 
-import { Job, Talent, Referral, CV, LM } from '.';
+import { Job, Talent, Freelance, Referral, CV, LM } from '.';
 
 export enum APPLICATION_STATUS {
     INREVIEW = 'in_review',
@@ -23,6 +23,9 @@ export class Application extends BaseEntity {
 
     @ManyToOne(() => Referral, (referral) => referral.applications, { nullable: true })
     referral: Referral;
+
+    @ManyToOne(() => Freelance, (freelance) => freelance.applications, { nullable: true })
+    freelance: Freelance;
 
     @ManyToOne(() => CV)
     cv: CV;

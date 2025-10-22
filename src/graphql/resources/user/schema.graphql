@@ -34,6 +34,8 @@ type Query {
     getOneReferral(input: IdInput!): Referral
     getTalents(input: PaginationInput, filter: TalentFilter): PaginateTalent
     getOneTalent(input: IdInput!): Talent
+    getFreelances(input: PaginationInput, filter: FreelanceFilter): PaginateFreelance
+    getOneFreelance(input: IdInput!): Freelance
     getCVs(input: PaginationInput, filter: CVFilter): PaginateCV
     getOneCV(input: IdInput!): CV
     generateCV(input: IdInput!): String
@@ -58,6 +60,9 @@ type Mutation {
     updateTalent(input: UpdateTalentInput): Talent
     createTalent(input: CreateTalentInput): Talent
     deleteTalent(input: IdInput!): Payload
+    updateFreelance(input: UpdateFreelanceInput): Freelance
+    createFreelance(input: CreateFreelanceInput): Freelance
+    deleteFreelance(input: IdInput!): Payload
     updateCV(input: UpdateCVInput): CV
     createCV(input: CreateCVInput): CV
     uploadCV(input: UploadCVInput): CV
@@ -102,6 +107,13 @@ type PaginateTalent {
     limit: Int
 }
 
+type PaginateFreelance {
+    rows: [Freelance]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
 type PaginateCV {
     rows: [CV]!
     total: Int!
@@ -127,6 +139,8 @@ type User {
     referral: Referral
     company: Company
     talent: Talent
+    freelance: Freelance
+    profilePicture: Media
     isVerified: Boolean
     validateAt: Date
     createdAt: Date
@@ -161,6 +175,30 @@ type Talent {
     values: [Value]
 }
 
+type Freelance {
+    id: String!
+    user: User!
+    status: Status!
+    title: String
+    category: Category
+    contact: ContactWithoutEmail
+    cvs: [CV]
+    lms: [LM]
+    createdAt: Date
+    values: [Value]
+    tjm: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
+}
+
+enum WORKMODE {
+    remote
+    hybrid
+    onsite
+}
+
 type CV {
     id: String!
     title: String!
@@ -169,7 +207,8 @@ type CV {
     diplomas: [Diploma]
     languages: [Language]
     experiences: [Experience]
-    talent: Talent!
+    talent: Talent
+    freelance: Freelance
     file: Media
     createdAt: Date
 }
@@ -201,7 +240,8 @@ type LM {
     id: String!
     title: String!
     content: String!
-    talent: Talent!
+    talent: Talent
+    freelance: Freelance
     createdAt: Date
 }
 
@@ -273,6 +313,7 @@ input UpdateUserInput {
     confirmPassword: String
     oldPassword: String
     role: String
+    profilePicture: MediaInput
 }
 
 input IdInput {
@@ -363,6 +404,34 @@ input UpdateTalentInput {
     experience: Int
     gender: GENDER
     educationLevel: EDUCATIONLEVEL
+}
+
+input CreateFreelanceInput {
+    status: Status!
+    user: UpdateUserInput!
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail!
+    values: [UpdateValueInput]!
+    tjm: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
+}
+
+input UpdateFreelanceInput {
+    id: String!
+    status: Status
+    title: String
+    user: UpdateUserInput
+    category: UpdateCategoryInput
+    contact: ContactInputWithoutEmail
+    values: [UpdateValueInput]
+    tjm: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
 }
 
 input CreateCVInput {
@@ -456,12 +525,19 @@ input TalentFilter {
     status: String
 }
 
+input FreelanceFilter {
+    name: String
+    status: String
+}
+
 input CVFilter {
     title: String
     talentId: String
+    freelanceId: String
 }
 
 input LMFilter {
     title: String
     talentId: String
+    freelanceId: String
 }

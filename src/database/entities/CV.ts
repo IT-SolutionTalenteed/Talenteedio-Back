@@ -1,5 +1,5 @@
 import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Talent, Media } from '.';
+import { Talent, Freelance, Media } from '.';
 
 @Entity()
 export class CV extends BaseEntity {
@@ -28,8 +28,11 @@ export class CV extends BaseEntity {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     skills: any;
 
-    @ManyToOne(() => Talent, (talent) => talent.cvs, { onDelete: 'CASCADE' })
+    @ManyToOne(() => Talent, (talent) => talent.cvs, { onDelete: 'CASCADE', nullable: true })
     talent: Talent;
+
+    @ManyToOne(() => Freelance, (freelance) => freelance.cvs, { onDelete: 'CASCADE', nullable: true })
+    freelance: Freelance;
 
     @ManyToOne(() => Media, { onDelete: 'CASCADE', nullable: true })
     file: Media;

@@ -1,4 +1,4 @@
-import { Company, Referral, Talent, User, Job, Article, Contact, CV, LM, Event, Partner, Interview, ACTIVE_STATUS, Ad } from './database/entities';
+import { Company, Referral, Talent, Freelance, User, Job, Article, Contact, CV, LM, Event, Partner, Interview, ACTIVE_STATUS, Ad } from './database/entities';
 import { Address } from './database/entities/Address';
 import { MODEL } from './database/entities/Category';
 import { HrFirstClub } from './database/entities/HrFirstClub';
@@ -220,9 +220,9 @@ export interface Payload {
 
 export type Constructor<T> = new () => T;
 export type Class<T> = Constructor<T>;
-export type RoleName = 'admin' | 'company' | 'referral' | 'talent' | 'hr-first-club';
-export type RoleRegitration = 'talent' | 'referral';
-export type RoleModel = Talent | Referral;
+export type RoleName = 'admin' | 'company' | 'referral' | 'talent' | 'freelance' | 'hr-first-club';
+export type RoleRegitration = 'talent' | 'referral' | 'freelance';
+export type RoleModel = Talent | Referral | Freelance;
 
 export interface Resource<T> {
     rows: T[];
@@ -306,6 +306,15 @@ export interface CreateTalentInput extends Partial<Talent> {
 }
 
 export interface UpdateTalentInput extends Partial<Talent> {
+    id: string;
+}
+
+export interface CreateFreelanceInput extends Partial<Freelance> {
+    contact: Contact;
+    user: UpdateUserInput;
+}
+
+export interface UpdateFreelanceInput extends Partial<Freelance> {
     id: string;
 }
 

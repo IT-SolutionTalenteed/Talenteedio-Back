@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import generatePassword from 'generate-password';
 
 import AppDataSource from '../../database';
-import { CV, Contact, Media, Referral, Talent, User, UserSession, Value } from '../../database/entities';
+import { CV, Contact, Media, Referral, Freelance, Talent, User, UserSession, Value } from '../../database/entities';
 import { validateEmail } from '../../helpers/utils';
 import transporter from '../../helpers/mailer';
 
@@ -87,7 +87,7 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
         }
         //
 
-        const user = await User.findOne({ where: { email: email }, relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values'] });
+        const user = await User.findOne({ where: { email: email }, relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'profilePicture'] });
 
         if (user) {
             // test a matching password
@@ -170,7 +170,7 @@ export const register = async (req: Request, res: Response) => {
     await queryRunner.startTransaction();
 
     try {
-        const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId } = {
+        const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, tjm, mobility, availabilityDate, desiredLocation, workMode } = {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
             email: req.body.email ? ent.encode(req.body.email) : null,
@@ -180,10 +180,15 @@ export const register = async (req: Request, res: Response) => {
             phone: req.body.phone ? ent.encode(req.body.phone) : null,
             values: req.body.values ? req.body.values : [],
             cvId: req.body.cvId ? ent.encode(req.body.cvId) : null,
+            tjm: req.body.tjm ? parseFloat(req.body.tjm) : null,
+            mobility: req.body.mobility ? ent.encode(req.body.mobility) : null,
+            availabilityDate: req.body.availabilityDate ? ent.encode(req.body.availabilityDate) : null,
+            desiredLocation: req.body.desiredLocation ? ent.encode(req.body.desiredLocation) : null,
+            workMode: req.body.workMode ? ent.encode(req.body.workMode) : null,
         };
 
         // Error handling
-        if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone || (role === 'talent' && (values.length === 0 || !cvId))) {
+        if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone || ((role === 'talent' || role === 'freelance') && (values.length === 0 || !cvId))) {
             res.status(400).json({ msg: 'All fields are required!' });
             return;
         }
@@ -201,6 +206,7 @@ export const register = async (req: Request, res: Response) => {
         const roles: Record<RoleRegitration, Class<RoleModel>> = {
             talent: Talent,
             referral: Referral,
+            freelance: Freelance,
         };
 
         if (!Object.keys(roles).includes(role)) {
@@ -230,6 +236,27 @@ export const register = async (req: Request, res: Response) => {
                 }
                 newUser.talent.contact = new Contact();
                 newUser.talent.contact.phoneNumber = phone;
+                // Nouveaux champs
+                if (tjm !== null) newUser.talent.tjm = tjm;
+                if (mobility !== null) newUser.talent.mobility = mobility;
+                if (availabilityDate !== null) newUser.talent.availabilityDate = availabilityDate as any;
+                if (desiredLocation !== null) newUser.talent.desiredLocation = desiredLocation;
+                if (workMode !== null) newUser.talent.workMode = workMode as any;
+            } else if (role === 'freelance') {
+                newUser.freelance = new Freelance();
+                newUser.freelance.values = [];
+                for (const value of values) {
+                    const fetchedValue = await Value.findOneBy({ id: value });
+                    fetchedValue && newUser.freelance.values.push(fetchedValue);
+                }
+                newUser.freelance.contact = new Contact();
+                newUser.freelance.contact.phoneNumber = phone;
+                // Nouveaux champs
+                if (tjm !== null) newUser.freelance.tjm = tjm;
+                if (mobility !== null) newUser.freelance.mobility = mobility;
+                if (availabilityDate !== null) newUser.freelance.availabilityDate = availabilityDate as any;
+                if (desiredLocation !== null) newUser.freelance.desiredLocation = desiredLocation;
+                if (workMode !== null) newUser.freelance.workMode = workMode as any;
             } else {
                 newUser.referral = new Referral();
                 newUser.referral.contact = new Contact();
@@ -244,6 +271,10 @@ export const register = async (req: Request, res: Response) => {
             if (role === 'talent') {
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.talent = newUser.talent;
+                await queryRunner.manager.save(cv);
+            } else if (role === 'freelance') {
+                const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
+                cv.freelance = newUser.freelance;
                 await queryRunner.manager.save(cv);
             }
 
@@ -316,7 +347,7 @@ export const verifyEmail = (req: Request, res: Response) => {
                     return;
                 }
 
-                const user = await User.findOne({ where: { email: email }, relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values'] });
+                const user = await User.findOne({ where: { email: email }, relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'profilePicture'] });
 
                 if (user && !user.validateAt) {
                     user.validateAt = new Date();
