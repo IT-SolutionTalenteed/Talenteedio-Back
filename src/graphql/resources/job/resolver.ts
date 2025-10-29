@@ -11,13 +11,14 @@ import companyGuard from '../../middleware/company-guard';
 
 import { CreateJobInput, JobWithIsApplied, JobWithReferralLink, PaginationInput, Payload, Resource, UpdateJobInput, UpdateMultipleJobsInput } from '../../../type';
 
-import { Application, Company, Job, STATUS, Skill, User, Admin, Referral, Value } from '../../../database/entities';
+import { Application, Company, Job, STATUS, Skill, User, Admin, Referral, Value, CV } from '../../../database/entities';
 import AppDataSource from '../../../database';
 import { APPLICATION_STATUS } from '../../../database/entities/Application';
 
 import { getResources, returnError } from '../../../helpers/graphql';
 import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 import transporter from '../../../helpers/mailer';
+import { matchCVWithJob } from '../../../helpers/ai/cv-matcher';
 
 const relations = ['company.user', 'featuredImage', 'location.address', 'jobType', 'category', 'skills', 'values'];
 
@@ -226,6 +227,62 @@ const resolver = {
                 }
 
                 throw createGraphQLError('Application not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        matchCVWithJob: async (_: any, args: { input: { cvId: string; jobId: string } }, context: any): Promise<any> => {
+            try {
+                const user = context.req?.session?.user as User;
+
+                if (!user?.talent) {
+                    throw createGraphQLError('Only talents can match their CV with jobs', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+                }
+
+                // Get the job details
+                const job = await Job.findOne({
+                    where: { id: args.input.jobId },
+                    relations: ['skills', 'category', 'jobType', 'location'],
+                });
+
+                if (!job) {
+                    throw createGraphQLError('Job not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                }
+
+                // Get the CV details
+                const cv = await CV.findOne({
+                    where: { id: args.input.cvId, talent: { id: user.talent.id } },
+                    relations: ['file', 'talent'],
+                });
+
+                if (!cv) {
+                    throw createGraphQLError('CV not found or access denied', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                }
+
+                // Extract CV text (you'll need to implement this based on your file storage)
+                // For now, we'll use a placeholder
+                const cvText = cv.file?.fileUrl || 'CV content not available';
+                
+                // TODO: Implement actual CV text extraction from file URL
+                // You might want to use pdf-parse, mammoth, or similar libraries
+                
+                // Prepare job data
+                const jobSkills = job.skills?.map(skill => skill.name) || [];
+                const jobRequirements = `Category: ${job.category?.name || 'N/A'}, Type: ${job.jobType?.name || 'N/A'}, Location: ${job.location?.name || 'N/A'}`;
+
+                // Call AI matching service
+                const matchResult = await matchCVWithJob({
+                    cvText,
+                    jobTitle: job.title,
+                    jobDescription: job.content,
+                    jobRequirements,
+                    jobSkills,
+                    experienceRequired: job.experience || 0,
+                });
+
+                return matchResult;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
                 throw returnError(error);
@@ -797,8 +854,11 @@ const resolver = {
 };
 
 const resolversComposition = {
+    'Query.getJobs': [graphqlGuard(['admin', 'company', 'talent', 'referral'])],
+    'Query.getOneJob': [graphqlGuard(['admin', 'company', 'talent', 'referral'])],
     'Query.getApplications': [graphqlGuard(['admin', 'talent', 'referral', 'company'])],
     'Query.getOneApplication': [graphqlGuard(['admin', 'talent', 'company'])],
+    'Query.matchCVWithJob': [graphqlGuard(['talent'])],
     'Mutation.createJob': [graphqlGuard(['admin']), companyGuard('job')],
     'Mutation.updateJob': [graphqlGuard(['admin'])],
     'Mutation.deleteJob': [graphqlGuard(['admin'])],

@@ -6,3 +6,9 @@ public/uploads
 admin/*
 !admin/.gitkeep
 exports/*
+
+# AI Service
+ai-service/.env
+ai-service/venv/
+ai-service/__pycache__/
+ai-service/*.pyc

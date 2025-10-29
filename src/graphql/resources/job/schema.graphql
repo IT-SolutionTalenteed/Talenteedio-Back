@@ -26,6 +26,7 @@ type Query {
     getOneJob(input: GetOneJobInput): Job
     getApplications(input: PaginationInput, filter: ApplicationFilter): PaginateApplication
     getOneApplication(input: GetOneJobInput): Application
+    matchCVWithJob(input: MatchCVInput): MatchResult
 }
 
 type Mutation {
@@ -234,4 +235,23 @@ input UpdateMultipleJobsInput {
     expirationDate: Date!
     includedIds: [String]
     excludedIds: [String]
+}
+
+input MatchCVInput {
+    cvId: String!
+    jobId: String!
+}
+
+type MatchCriteria {
+    criterion: String!
+    score: Int!
+    explanation: String!
+}
+
+type MatchResult {
+    overall_match_percentage: Int!
+    criteria_scores: [MatchCriteria]!
+    strengths: [String]!
+    gaps: [String]!
+    recommendation: String!
 }

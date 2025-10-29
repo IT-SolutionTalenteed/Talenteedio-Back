@@ -8,6 +8,7 @@ import locationSchema from './location';
 import jobTypeSchema from './jobType';
 import categorySchema from './category';
 import jobSchema from './job';
+import jobFreelanceSchema from './jobFreelance';
 import testimonialSchema from './testimonial';
 import eventSchema from './event';
 import partnerSchema from './partner';
@@ -29,6 +30,7 @@ export {
     jobTypeSchema,
     categorySchema,
     jobSchema,
+    jobFreelanceSchema,
     testimonialSchema,
     eventSchema,
     partnerSchema,
