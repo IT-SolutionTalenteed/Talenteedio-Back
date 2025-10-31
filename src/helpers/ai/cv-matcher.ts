@@ -95,12 +95,26 @@ export async function matchCVWithJob(input: CVMatchInput): Promise<MatchResult> 
  * based on your file storage system (e.g., PDF parsing, DOCX parsing, etc.)
  */
 export async function extractCVText(cvFileUrl: string): Promise<string> {
-    // TODO: Implement actual CV text extraction
-    // For now, return a placeholder
-    // You might want to use libraries like:
-    // - pdf-parse for PDF files
-    // - mammoth for DOCX files
-    // - Or call an external service
+    const path = require("path");
+    const fs = require("fs");
+    const pdfParse = require("pdf-parse");
+    const mammoth = require("mammoth");
     
-    throw new Error('CV text extraction not yet implemented. Please implement extractCVText() function.');
+    // Téléchargement du fichier si distant à implémenter éventuellement (selon URL)
+    // Ici, on suppose chemin local
+    const ext = path.extname(cvFileUrl).toLowerCase();
+    if (!fs.existsSync(cvFileUrl)) {
+        throw new Error("CV file not found: " + cvFileUrl);
+    }
+    const data = fs.readFileSync(cvFileUrl);
+    
+    if (ext === ".pdf") {
+        const parsed = await pdfParse(data);
+        return parsed.text;
+    } else if (ext === ".docx") {
+        const result = await mammoth.extractRawText({ buffer: data });
+        return result.value;
+    } else {
+        throw new Error("Unsupported CV file format: " + ext);
+    }
 }

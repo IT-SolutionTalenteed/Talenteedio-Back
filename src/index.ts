@@ -1,3 +1,4 @@
+/// <reference path="./type.d.ts" />
 import express from 'express';
 import session from 'express-session';
 import cors from 'cors';
@@ -81,6 +82,51 @@ const serve = async () => {
 
         // Uploaded files
         app.use('/public', express.static(path.join(__dirname, '..', 'public')));
+
+        // --- API scanmyprofilecvwithjob ---
+        app.post('/api/scanmyprofilecvwithjob', async (req, res) => {
+            const { pdfUrl, jobId } = req.body as { pdfUrl?: string; jobId?: string };
+            if (!pdfUrl || !jobId) {
+                return res.status(400).json({ message: 'pdfUrl and jobId are required' });
+            }
+
+            try {
+                // Lazy imports to avoid ESM/CommonJS conflicts at build
+                const axios = (await import('axios')).default;
+                const pdfParse = (await import('pdf-parse')).default as unknown as (buffer: Buffer) => Promise<{ text: string }>;
+                const { convert } = await import('html-to-text');
+                const { Job } = await import('./database/entities/Job');
+                const { default: AppDataSource } = await import('./database');
+
+                // 1) Download PDF as Buffer
+                const pdfResponse = await axios.get<ArrayBuffer>(pdfUrl, { responseType: 'arraybuffer', timeout: 20000 });
+                const pdfBuffer = Buffer.from(pdfResponse.data);
+
+                // 2) Extract text from PDF
+                let cvText = '';
+                try {
+                    const parsed = await pdfParse(pdfBuffer);
+                    cvText = (parsed?.text || '').trim();
+                } catch {
+                    cvText = '';
+                }
+
+                // 3) Load Job by id and extract text from HTML content
+                const jobRepo = AppDataSource.getRepository(Job);
+                const job = await jobRepo.findOne({ where: { id: jobId } });
+                const jobHtml = job?.content || '';
+                const jobText = jobHtml ? convert(jobHtml, { wordwrap: false, selectors: [{ selector: 'a', options: { ignoreHref: true } }] }) : '';
+
+                return res.json({
+                    message: `le pdf ${pdfUrl} et le job ${job?.title || jobId} sont recupéré par l'api`,
+                    cvText,
+                    jobText,
+                });
+            } catch (e) {
+                return res.status(500).json({ message: 'internal_error' });
+            }
+        });
+        // --- END API ---
 
         app.get('*', (req, res) => {
             res.redirect(process.env.FRONTEND_HOST as string);

@@ -359,3 +359,6 @@ export interface JoinUsForm {
     events: Event[];
     otherTopics: string;
 }
+
+declare module 'pdf-parse';
+declare module 'html-to-text';

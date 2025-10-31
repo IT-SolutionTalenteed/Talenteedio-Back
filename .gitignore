@@ -12,3 +12,5 @@ ai-service/.env
 ai-service/venv/
 ai-service/__pycache__/
 ai-service/*.pyc
+
+venv/
