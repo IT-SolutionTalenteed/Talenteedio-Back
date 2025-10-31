@@ -117,10 +117,39 @@ const serve = async () => {
                 const jobHtml = job?.content || '';
                 const jobText = jobHtml ? convert(jobHtml, { wordwrap: false, selectors: [{ selector: 'a', options: { ignoreHref: true } }] }) : '';
 
+                // 4) Call Python script to compute character counts
+                let pythonReturn: unknown = null;
+                try {
+                    const { spawn } = await import('child_process');
+                    const pythonPath = process.env.PYTHON_PATH || path.join(__dirname, '..', 'venv', 'bin', 'python3');
+                    const scriptPath = path.join(__dirname, '..', 'ai-service', 'count_chars.py');
+
+                    const child = spawn(pythonPath, [scriptPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+                    child.stdin.write(JSON.stringify({ cvText, jobText }));
+                    child.stdin.end();
+
+                    const stdout = await new Promise<string>((resolve, reject) => {
+                        let out = '';
+                        let err = '';
+                        child.stdout.on('data', (d) => (out += d.toString()));
+                        child.stderr.on('data', (d) => (err += d.toString()));
+                        child.on('error', reject);
+                        child.on('close', (code) => {
+                            if (code === 0) return resolve(out);
+                            return reject(new Error(err || `Python exited with code ${code}`));
+                        });
+                    });
+
+                    pythonReturn = JSON.parse(stdout);
+                } catch (err) {
+                    return res.status(500).json({ message: 'python_error' });
+                }
+
                 return res.json({
                     message: `le pdf ${pdfUrl} et le job ${job?.title || jobId} sont recupéré par l'api`,
                     cvText,
                     jobText,
+                    pythonReturn,
                 });
             } catch (e) {
                 return res.status(500).json({ message: 'internal_error' });
