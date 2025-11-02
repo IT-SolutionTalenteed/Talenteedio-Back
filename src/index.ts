@@ -99,8 +99,14 @@ const serve = async () => {
                 const { default: AppDataSource } = await import('./database');
 
                 // 1) Download PDF as Buffer
-                const pdfResponse = await axios.get<ArrayBuffer>(pdfUrl, { responseType: 'arraybuffer', timeout: 20000 });
-                const pdfBuffer = Buffer.from(pdfResponse.data);
+                let pdfBuffer: Buffer;
+                try {
+                    const pdfResponse = await axios.get<ArrayBuffer>(pdfUrl, { responseType: 'arraybuffer', timeout: 20000 });
+                    pdfBuffer = Buffer.from(pdfResponse.data);
+                } catch (err) {
+                    console.error('PDF download failed:', err);
+                    return res.status(400).json({ message: 'pdf_download_error' });
+                }
 
                 // 2) Extract text from PDF
                 let cvText = '';
@@ -114,6 +120,9 @@ const serve = async () => {
                 // 3) Load Job by id and extract text from HTML content
                 const jobRepo = AppDataSource.getRepository(Job);
                 const job = await jobRepo.findOne({ where: { id: jobId } });
+                if (!job) {
+                    return res.status(404).json({ message: 'job_not_found' });
+                }
                 const jobHtml = job?.content || '';
                 const jobText = jobHtml ? convert(jobHtml, { wordwrap: false, selectors: [{ selector: 'a', options: { ignoreHref: true } }] }) : '';
 
@@ -142,6 +151,7 @@ const serve = async () => {
 
                     pythonReturn = JSON.parse(stdout);
                 } catch (err) {
+                    console.error('Python scoring failed:', err);
                     return res.status(500).json({ message: 'python_error' });
                 }
 
@@ -152,6 +162,7 @@ const serve = async () => {
                     pythonReturn,
                 });
             } catch (e) {
+                console.error('scanmyprofilecvwithjob failed:', e);
                 return res.status(500).json({ message: 'internal_error' });
             }
         });
