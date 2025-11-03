@@ -27,7 +27,7 @@ def clamp_score(value: float) -> int:
     return int(round(v))
 
 
-def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str]:
+def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str, str]:
     if not _OPENAI_IMPORTED:
         raise RuntimeError("Le package 'openai' n'est pas installé dans l'environnement Python.")
     if not OPENAI_API_KEY:
@@ -49,8 +49,9 @@ def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str]:
         "CV_TEXT:\n" + cv_snippet + "\n\nJOB_TEXT:\n" + job_snippet + "\n\n"
         "Tâches:\n"
         "1) Évalue la pertinence globale (0..100).\n"
-        "2) Donne des recommandations concrètes et actionnables pour améliorer le score (format bref).\n\n"
-        "Réponds en JSON STRICT: {\"score\": number, \"report\": string}."
+        "2) Fais une analyse détaillée de la correspondance (points forts, points faibles).\n"
+        "3) Donne des recommandations concrètes et actionnables pour améliorer le score (format bref).\n\n"
+        "Réponds en JSON STRICT: {\"score\": number, \"analysis\": string, \"recommendations\": string}."
     )
 
     chat = client.chat.completions.create(
@@ -66,16 +67,17 @@ def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str]:
     content = (chat.choices[0].message.content or "{}").strip()
     data = json.loads(content)
     score = clamp_score(data.get("score", 0))
-    report = str(data.get("report", ""))
-    return score, report
+    analysis = str(data.get("analysis", ""))
+    recommendations = str(data.get("recommendations", ""))
+    return score, analysis, recommendations
 
 
 def main() -> None:
     payload = json.load(sys.stdin)
     cv_text = payload.get("cvText", "")
     job_text = payload.get("jobText", "")
-    score, report = compute_relevance_score(cv_text, job_text)
-    print(json.dumps({"score": score, "report": report}))
+    score, analysis, recommendations = compute_relevance_score(cv_text, job_text)
+    print(json.dumps({"score": score, "analysis": analysis, "recommendations": recommendations}))
 
 
 if __name__ == "__main__":
