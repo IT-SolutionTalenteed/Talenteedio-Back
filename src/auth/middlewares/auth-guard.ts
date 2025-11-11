@@ -20,7 +20,11 @@ export default (req: Request, res: Response, next: NextFunction) => {
 
     jwt.verify(token, process.env.SECRET_ACCESS_TOKEN as string, async (err) => {
         if (err) {
-            console.log(err);
+            // Distinguish expired token to allow client to refresh
+            if ((err as jwt.VerifyErrors).name === 'TokenExpiredError') {
+                res.status(401).json({ msg: 'Access denied: token expired!', code: 'TOKEN_EXPIRED' });
+                return;
+            }
             res.status(401).json({ msg: 'Access denied: token invalid!' });
             return;
         }

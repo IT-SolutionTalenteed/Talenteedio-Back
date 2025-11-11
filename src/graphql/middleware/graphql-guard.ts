@@ -20,7 +20,9 @@ export default (roles?: RoleName[]) => (next: any) => (_: any, args: any, contex
 
     return jwt.verify(token, process.env.SECRET_ACCESS_TOKEN as string, async (err) => {
         if (err) {
-            console.log(err);
+            if ((err as jwt.VerifyErrors).name === 'TokenExpiredError') {
+                throw createGraphQLError('Access denied: token expired!', { extensions: { statusCode: 401, statusText: UNAUTHORIZED, code: 'TOKEN_EXPIRED' } });
+            }
             throw createGraphQLError('Access denied: token invalid!', { extensions: { statusCode: 401, statusText: UNAUTHORIZED } });
         }
 
