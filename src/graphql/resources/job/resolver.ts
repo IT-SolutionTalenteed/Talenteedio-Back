@@ -854,8 +854,8 @@ const resolver = {
 };
 
 const resolversComposition = {
-    'Query.getJobs': [graphqlGuard(['admin', 'company', 'talent', 'referral'])],
-    'Query.getOneJob': [graphqlGuard(['admin', 'company', 'talent', 'referral'])],
+    // getJobs doit être accessible publiquement; le resolver filtre déjà sur status 'public' pour les non-admins
+    // getOneJob doit être accessible publiquement; le resolver gère les champs dépendants de l'utilisateur connecté
     'Query.getApplications': [graphqlGuard(['admin', 'talent', 'referral', 'company'])],
     'Query.getOneApplication': [graphqlGuard(['admin', 'talent', 'company'])],
     'Query.matchCVWithJob': [graphqlGuard(['talent'])],
