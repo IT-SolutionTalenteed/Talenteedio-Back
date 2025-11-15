@@ -221,7 +221,7 @@ export interface Payload {
 export type Constructor<T> = new () => T;
 export type Class<T> = Constructor<T>;
 export type RoleName = 'admin' | 'company' | 'referral' | 'talent' | 'freelance' | 'hr-first-club';
-export type RoleRegitration = 'talent' | 'referral' | 'freelance';
+export type RoleRegitration = 'talent' | 'referral' | 'freelance' | 'company';
 export type RoleModel = Talent | Referral | Freelance;
 
 export interface Resource<T> {

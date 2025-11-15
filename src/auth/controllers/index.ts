@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import generatePassword from 'generate-password';
 
 import AppDataSource from '../../database';
-import { CV, Contact, Media, Referral, Freelance, Talent, User, UserSession, Value } from '../../database/entities';
+import { CV, Contact, Media, Referral, Freelance, Talent, User, UserSession, Value, Company, Permission } from '../../database/entities';
 import { validateEmail } from '../../helpers/utils';
 import transporter from '../../helpers/mailer';
 
@@ -170,7 +170,7 @@ export const register = async (req: Request, res: Response) => {
     await queryRunner.startTransaction();
 
     try {
-        const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, tjm, mobility, availabilityDate, desiredLocation, workMode } = {
+        const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, tjm, mobility, availabilityDate, desiredLocation, workMode, company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId } = {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
             email: req.body.email ? ent.encode(req.body.email) : null,
@@ -185,10 +185,22 @@ export const register = async (req: Request, res: Response) => {
             availabilityDate: req.body.availabilityDate ? ent.encode(req.body.availabilityDate) : null,
             desiredLocation: req.body.desiredLocation ? ent.encode(req.body.desiredLocation) : null,
             workMode: req.body.workMode ? ent.encode(req.body.workMode) : null,
+            company_name: req.body.company_name ? ent.encode(req.body.company_name) : null,
+            contactEmail: req.body.contactEmail ? ent.encode(req.body.contactEmail) : null,
+            categoryId: req.body.categoryId ? ent.encode(req.body.categoryId) : null,
+            address_line: req.body.address_line ? ent.encode(req.body.address_line) : null,
+            postalCode: req.body.postalCode ? ent.encode(req.body.postalCode) : null,
+            city: req.body.city ? ent.encode(req.body.city) : null,
+            state: req.body.state ? ent.encode(req.body.state) : null,
+            country: req.body.country ? ent.encode(req.body.country) : null,
+            logoId: req.body.logoId ? ent.encode(req.body.logoId) : null,
         };
 
         // Error handling
-        if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone || ((role === 'talent' || role === 'freelance') && (values.length === 0 || !cvId))) {
+        if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone
+            || ((role === 'talent' || role === 'freelance') && (values.length === 0 || !cvId))
+            || (role === 'company' && !company_name)
+        ) {
             res.status(400).json({ msg: 'All fields are required!' });
             return;
         }
@@ -207,6 +219,7 @@ export const register = async (req: Request, res: Response) => {
             talent: Talent,
             referral: Referral,
             freelance: Freelance,
+            company: Company as unknown as Class<RoleModel>,
         };
 
         if (!Object.keys(roles).includes(role)) {
@@ -257,10 +270,65 @@ export const register = async (req: Request, res: Response) => {
                 if (availabilityDate !== null) newUser.freelance.availabilityDate = availabilityDate as any;
                 if (desiredLocation !== null) newUser.freelance.desiredLocation = desiredLocation;
                 if (workMode !== null) newUser.freelance.workMode = workMode as any;
-            } else {
+            } else if (role === 'referral') {
                 newUser.referral = new Referral();
                 newUser.referral.contact = new Contact();
                 newUser.referral.contact.phoneNumber = phone;
+            } else {
+                // company
+                newUser.company = new Company();
+                newUser.company.company_name = company_name as string;
+                newUser.company.contact = new Contact();
+                newUser.company.contact.phoneNumber = phone;
+                if (contactEmail) {
+                    newUser.company.contact.email = contactEmail;
+                }
+                // Address (create only if at least minimal info provided)
+                if (address_line || postalCode || city || country) {
+                    const address = new (require('../../database/entities').Address)();
+                    address.line = address_line || '';
+                    address.postalCode = postalCode || '';
+                    address.city = city || '';
+                    address.state = state || null;
+                    address.country = country || '';
+                    // Save address through manager so Contact can reference it
+                    await queryRunner.manager.save(address);
+                    newUser.company.contact.address = address;
+                }
+                // Category
+                if (categoryId) {
+                    const { Category } = require('../../database/entities');
+                    const category = await Category.findOne({ where: { id: categoryId } });
+                    if (category) {
+                        newUser.company.category = category;
+                    }
+                }
+                // Logo
+                if (logoId) {
+                    const { Media } = require('../../database/entities');
+                    const logo = await Media.findOne({ where: { id: logoId } });
+                    if (logo) {
+                        newUser.company.logo = logo;
+                    }
+                }
+
+                // Assign default permission package
+                const defaultPermission =
+                    (await Permission.findOne({ where: { title: 'Initial Package' } })) ||
+                    undefined;
+                if (defaultPermission) {
+                    newUser.company.permission = defaultPermission;
+                } else {
+                    // Fallback: create a minimal permission if seed not run
+                    const permission = Object.assign(new Permission(), {
+                        title: 'Initial Package',
+                        numberOfJobsPerYear: 5,
+                        numberOfArticlesPerYear: 5,
+                        validityPeriodOfAJob: 60,
+                    });
+                    await queryRunner.manager.save(permission);
+                    newUser.company.permission = permission;
+                }
             }
 
             await queryRunner.manager.save(newUser[role].contact);
@@ -285,6 +353,9 @@ export const register = async (req: Request, res: Response) => {
                     throw error;
                 }
 
+                // Commit DB changes BEFORE sending email to avoid failing registration on mail errors
+                await queryRunner.commitTransaction();
+
                 try {
                     await transporter.sendMail({
                         from: 'Talenteed.io ' + process.env.MAILUSER,
@@ -301,9 +372,12 @@ export const register = async (req: Request, res: Response) => {
                         },
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any);
+                } catch (error) {
+                    // Log and continue – registration is successful, but email failed
+                    console.error('Email sending failed on registration:', error);
+                }
 
-                    await queryRunner.commitTransaction();
-
+                try {
                     if (role === 'talent') {
                         const talent = (await Talent.findOne({ where: { id: newUser.talent.id }, relations: ['user'] })) as Talent;
 
@@ -318,13 +392,12 @@ export const register = async (req: Request, res: Response) => {
                         talent.consent = consent;
                         await talent.save();
                     }
-
-                    generateAccessToken(req, res, newUser);
                 } catch (error) {
-                    await queryRunner.rollbackTransaction();
-                    res.status(500).json({ msg: 'Failed to register, email not sent!' });
-                    throw error;
+                    // Do not fail registration if consent generation fails; just log
+                    console.error('Post-registration processing failed:', error);
                 }
+
+                generateAccessToken(req, res, newUser);
             });
         }
     } catch (error) {
