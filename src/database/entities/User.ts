@@ -67,6 +67,18 @@ export class User extends BaseEntity {
     @JoinColumn()
     profilePicture: Media;
 
+    @Column({ type: 'varchar', nullable: true })
+    stripeCustomerId: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    stripeSubscriptionId: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    stripePriceId: string | null;
+
+    @Column({ type: 'varchar', nullable: true })
+    subscriptionStatus: 'active' | 'canceled' | 'past_due' | 'trialing' | null;
+
     async checkPasswd(passwd: string): Promise<boolean> {
         return await bcrypt.compare(passwd, this.password);
     }

@@ -11,6 +11,7 @@ import { UserSession } from './database/entities';
 
 import graphQLRouter from './graphql';
 import authRouter from './auth';
+import billingRouter from './billing';
 
 import { initSentry } from './sentry';
 
@@ -51,6 +52,9 @@ const serve = async () => {
             })
         );
 
+        // Webhook Stripe (doit être AVANT express.json pour vérifier la signature)
+        app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
         app.use(express.json({ limit: '100mb' }), express.urlencoded({ extended: true, limit: '100mb' }));
 
         // Session
@@ -76,6 +80,9 @@ const serve = async () => {
 
         // Auth
         app.use('/api', authRouter);
+
+        // Billing & Stripe
+        app.use('/api', billingRouter);
 
         // GraphQL routes
         app.use('/api', graphQLRouter);
