@@ -86,7 +86,7 @@
     "mysql2": "^2.3.3",
     "nodemailer": "^6.8.0",
     "nodemailer-express-handlebars": "^6.0.0",
-    "pdf-parse": "^1.1.4",
+    "pdf-parse": "^2.4.5",
     "pdfmake": "^0.2.7",
     "reflect-metadata": "^0.2.2",
     "tslib": "^2.4.1",
