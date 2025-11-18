@@ -8,7 +8,8 @@ const router = Router();
 router.get('/billing/plans', listPlans);
 
 // Routes protégées pour les utilisateurs authentifiés
-router.post('/billing/checkout-session', auth, createCheckoutSession);
+// Note: createCheckoutSession peut aussi être utilisée sans auth pendant l'onboarding
+router.post('/billing/checkout-session', createCheckoutSession);
 router.post('/billing/portal-session', auth, createPortalSession);
 
 // Route webhook Stripe (doit utiliser express.raw pour vérifier la signature)

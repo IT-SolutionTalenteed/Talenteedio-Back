@@ -1,33 +1,40 @@
 import { Request, Response } from 'express';
+import Stripe from 'stripe';
 import { stripe, stripeConfig } from '../../config/stripe';
 import { User } from '../../database/entities/User';
-import Stripe from 'stripe';
 
 /**
  * Liste tous les plans disponibles depuis Stripe
  */
 export const listPlans = async (req: Request, res: Response) => {
     try {
+        console.log('Fetching plans from Stripe...');
+        console.log('Allowed Price IDs:', stripeConfig.allowedPriceIds);
+        
         const prices = await stripe.prices.list({
             active: true,
             limit: 50,
             expand: ['data.product'],
         });
 
+        console.log(`Found ${prices.data.length} prices from Stripe`);
+
         const allowedPriceIds = stripeConfig.allowedPriceIds;
 
         const plans = prices.data
-            .filter((price) => {
+            .filter((price: Stripe.Price) => {
                 const isEligible = price.type === 'recurring' && price.active && price.product;
                 if (!isEligible) return false;
 
                 // Si une whitelist est fournie, ne retourner que ces prix
                 if (allowedPriceIds.length > 0) {
-                    return allowedPriceIds.includes(price.id);
+                    const isAllowed = allowedPriceIds.includes(price.id);
+                    console.log(`Price ${price.id}: ${isAllowed ? 'ALLOWED' : 'FILTERED OUT'}`);
+                    return isAllowed;
                 }
                 return true;
             })
-            .map((price) => {
+            .map((price: Stripe.Price) => {
                 const product = price.product as Stripe.Product;
                 return {
                     price_id: price.id,
@@ -46,9 +53,16 @@ export const listPlans = async (req: Request, res: Response) => {
                 };
             });
 
+        console.log(`Returning ${plans.length} plans to client`);
         res.status(200).json({ plans });
     } catch (error: any) {
         console.error('Error listing plans:', error);
+        console.error('Error details:', {
+            message: error.message,
+            type: error.type,
+            code: error.code,
+            statusCode: error.statusCode,
+        });
         res.status(500).json({
             message: 'Failed to list plans',
             error: error.message,
@@ -61,9 +75,12 @@ export const listPlans = async (req: Request, res: Response) => {
  */
 export const createCheckoutSession = async (req: Request, res: Response) => {
     try {
-        const { price_id, success_url, cancel_url } = req.body;
+        const { price_id, success_url, cancel_url, email } = req.body;
+
+        console.log('Creating checkout session with:', { price_id, success_url, cancel_url, email, hasUser: !!(req as any).user });
 
         if (!price_id || !success_url || !cancel_url) {
+            console.log('Validation failed:', { price_id, success_url, cancel_url });
             return res.status(422).json({
                 message: 'Validation error',
                 errors: {
@@ -74,33 +91,75 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
             });
         }
 
-        const user = (req as any).user as User;
-        if (!user) {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
+        const user = (req as any).user as User | undefined;
 
-        // Créer ou récupérer le customer Stripe
-        let customerId = user.stripeCustomerId;
-
-        if (!customerId) {
-            const customer = await stripe.customers.create({
-                email: user.email,
-                name: `${user.firstname} ${user.lastname}`,
-                metadata: {
-                    user_id: user.id.toString(),
+        // Si l'utilisateur n'est pas authentifié, on doit avoir un email
+        if (!user && !email) {
+            console.log('No user and no email provided');
+            return res.status(422).json({
+                message: 'Validation error',
+                errors: {
+                    email: 'Email is required when not authenticated',
                 },
             });
-            customerId = customer.id;
+        }
 
-            // Sauvegarder le customer ID
-            user.stripeCustomerId = customerId;
-            await user.save();
+        let customerId: string | null | undefined;
+        let userEmail: string;
+        let userName: string;
+        let userId: string | undefined;
+
+        if (user) {
+            // Utilisateur authentifié
+            userEmail = user.email;
+            userName = `${user.firstname} ${user.lastname}`;
+            userId = user.id.toString();
+            customerId = user.stripeCustomerId;
+
+            // Créer ou récupérer le customer Stripe
+            if (!customerId) {
+                const customer = await stripe.customers.create({
+                    email: userEmail,
+                    name: userName,
+                    metadata: {
+                        user_id: userId,
+                    },
+                });
+                customerId = customer.id;
+
+                // Sauvegarder le customer ID
+                user.stripeCustomerId = customerId || null;
+                await user.save();
+            }
+        } else {
+            // Utilisateur non authentifié (onboarding)
+            userEmail = email;
+            userName = email;
+
+            // Chercher si un utilisateur existe avec cet email
+            const existingUser = await User.findOne({ where: { email: userEmail } });
+            if (existingUser) {
+                userId = existingUser.id.toString();
+                customerId = existingUser.stripeCustomerId;
+
+                if (!customerId) {
+                    const customer = await stripe.customers.create({
+                        email: userEmail,
+                        name: `${existingUser.firstname} ${existingUser.lastname}`,
+                        metadata: {
+                            user_id: userId || '',
+                        },
+                    });
+                    customerId = customer.id;
+                    existingUser.stripeCustomerId = customerId || null;
+                    await existingUser.save();
+                }
+            }
         }
 
         // Créer la session de checkout
-        const session = await stripe.checkout.sessions.create({
+        const sessionConfig: any = {
             mode: 'subscription',
-            customer: customerId,
             line_items: [
                 {
                     price: price_id,
@@ -110,12 +169,24 @@ export const createCheckoutSession = async (req: Request, res: Response) => {
             success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: cancel_url,
             allow_promotion_codes: true,
-            client_reference_id: user.id.toString(),
             metadata: {
-                user_id: user.id.toString(),
-                email: user.email,
+                email: userEmail,
+                ...(userId ? { user_id: userId } : {}),
             },
-        });
+        };
+
+        if (customerId) {
+            sessionConfig.customer = customerId;
+            if (userId) {
+                sessionConfig.client_reference_id = userId;
+            }
+        } else {
+            sessionConfig.customer_email = userEmail;
+        }
+
+        const session = await stripe.checkout.sessions.create(sessionConfig);
+
+        console.log('Checkout session created successfully:', { sessionId: session.id, url: session.url });
 
         res.status(200).json({
             id: session.id,
