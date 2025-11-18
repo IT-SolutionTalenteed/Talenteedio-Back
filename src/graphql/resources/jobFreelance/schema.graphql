@@ -7,7 +7,19 @@
 scalar Date
 
 type Query {
-    getFreelanceJobs(input: PaginationInput): PaginateFreelanceJob
+    getFreelanceJobs(input: PaginationInput, filter: FreelanceJobFilter): PaginateFreelanceJob
+}
+
+input FreelanceJobFilter {
+    search: String
+    location: String
+    category: String
+    salaryMin: Int
+    salaryMax: Int
+    experienceLevels: Int
+    jobTypes: [String]
+    datePosted: Int
+    isFeatured: Boolean
 }
 
 type PaginateFreelanceJob {
