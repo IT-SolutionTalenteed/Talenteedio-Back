@@ -97,6 +97,9 @@ export class Talent extends BaseEntity {
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
     tjm: number;
 
+    @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+    annualSalary: number;
+
     @Column({ nullable: true })
     mobility: string;
 

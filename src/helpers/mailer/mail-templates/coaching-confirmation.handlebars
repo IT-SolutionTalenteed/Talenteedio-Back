@@ -1,0 +1,66 @@
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+  <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+    <h1 style="color: white; margin: 0; font-size: 28px;">Réservation Confirmée ✓</h1>
+  </div>
+  
+  <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+      Bonjour <strong>{{name}}</strong>,
+    </p>
+    
+    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+      Votre réservation pour le service <strong>{{serviceName}}</strong> a été confirmée avec succès !
+    </p>
+    
+    <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
+      <h2 style="color: #2c3e50; font-size: 20px; margin-top: 0;">Détails de votre réservation</h2>
+      
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Consultant :</td>
+          <td style="padding: 10px 0; color: #2c3e50;">{{consultant}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Date :</td>
+          <td style="padding: 10px 0; color: #2c3e50;">{{date}}</td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Heure :</td>
+          <td style="padding: 10px 0; color: #2c3e50;">{{time}}</td>
+        </tr>
+        {{#if frequency}}
+        <tr>
+          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Fréquence :</td>
+          <td style="padding: 10px 0; color: #2c3e50;">{{frequency}}</td>
+        </tr>
+        {{/if}}
+        <tr>
+          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Montant payé :</td>
+          <td style="padding: 10px 0; color: #5cb85c; font-weight: bold;">{{amount}}€</td>
+        </tr>
+      </table>
+    </div>
+    
+    <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
+      <h3 style="color: #2c3e50; font-size: 18px; margin-top: 0;">Prochaines étapes</h3>
+      <ul style="color: #5a6c7d; line-height: 1.8;">
+        <li>Vous recevrez un lien de visioconférence 24h avant la session</li>
+        <li>Votre consultant vous contactera pour préparer la session</li>
+        <li>Préparez vos questions et objectifs pour la session</li>
+      </ul>
+    </div>
+    
+    <p style="font-size: 14px; color: #5a6c7d; margin-top: 30px;">
+      Si vous avez des questions, n'hésitez pas à nous contacter.
+    </p>
+    
+    <p style="font-size: 14px; color: #5a6c7d;">
+      Cordialement,<br>
+      <strong>L'équipe Talenteed</strong>
+    </p>
+  </div>
+  
+  <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+    <p>© {{year}} Talenteed. Tous droits réservés.</p>
+  </div>
+</div>

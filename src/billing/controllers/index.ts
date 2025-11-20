@@ -295,6 +295,10 @@ export const handleWebhook = async (req: Request, res: Response) => {
                 await handleInvoicePaymentFailed(event.data.object as Stripe.Invoice);
                 break;
 
+            case 'checkout.session.completed':
+                await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+                break;
+
             default:
                 console.log(`Unhandled event type: ${event.type}`);
         }
@@ -401,3 +405,169 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 
     console.log(`Payment failed for user ${user.id}`);
 }
+
+/**
+ * Gère la complétion d'une session de checkout (pour les paiements one-time comme le coaching)
+ */
+async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+    console.log('Checkout session completed:', session.id);
+
+    // Vérifier si c'est une réservation de coaching
+    const bookingId = session.metadata?.booking_id;
+    if (bookingId) {
+        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+        const booking = await CoachingBooking.findOne({ where: { id: parseInt(bookingId) } });
+
+        if (booking) {
+            booking.status = 'paid';
+            booking.stripePaymentIntentId = session.payment_intent as string;
+            await booking.save();
+
+            console.log(`Coaching booking ${bookingId} marked as paid`);
+
+            // Envoyer un email de confirmation au client
+            try {
+                const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
+                const serviceName = booking.serviceType === 'bilan' ? 'Bilan Emploi (2h)' : 'Accompagnement Emploi (2 mois)';
+                
+                await sendCoachingConfirmation({
+                    name: booking.name,
+                    email: booking.email,
+                    consultant: booking.consultant.charAt(0).toUpperCase() + booking.consultant.slice(1),
+                    serviceName,
+                    date: booking.bookingDate,
+                    time: booking.bookingTime,
+                    frequency: booking.frequency,
+                    amount: booking.amount,
+                });
+
+                console.log(`Confirmation email sent to ${booking.email}`);
+            } catch (emailError) {
+                console.error('Error sending confirmation email:', emailError);
+                // Ne pas faire échouer le webhook si l'email échoue
+            }
+        }
+    }
+}
+
+/**
+ * Crée une session de checkout Stripe pour le coaching emploi
+ */
+export const createCoachingCheckoutSession = async (req: Request, res: Response) => {
+    try {
+        const {
+            contact,
+            consultant,
+            service,
+            date,
+            time,
+            frequency,
+            amount,
+            success_url,
+            cancel_url,
+        } = req.body;
+
+        console.log('Creating coaching checkout session:', {
+            contact,
+            consultant,
+            service,
+            date,
+            time,
+            amount,
+        });
+
+        // Validation
+        if (!contact?.name || !contact?.email || !contact?.phone) {
+            return res.status(422).json({
+                message: 'Validation error',
+                errors: {
+                    contact: 'Contact information (name, email, phone) is required',
+                },
+            });
+        }
+
+        if (!consultant || !service || !date || !time || !amount) {
+            return res.status(422).json({
+                message: 'Validation error',
+                errors: {
+                    consultant: !consultant ? 'Consultant is required' : undefined,
+                    service: !service ? 'Service type is required' : undefined,
+                    date: !date ? 'Booking date is required' : undefined,
+                    time: !time ? 'Booking time is required' : undefined,
+                    amount: !amount ? 'Amount is required' : undefined,
+                },
+            });
+        }
+
+        // Importer l'entité CoachingBooking
+        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+
+        // Créer la réservation en base de données
+        const booking = CoachingBooking.create({
+            name: contact.name,
+            email: contact.email,
+            phone: contact.phone,
+            consultant,
+            serviceType: service,
+            bookingDate: date,
+            bookingTime: time,
+            frequency: frequency || null,
+            timezone: req.body.timezone || 'Europe/Paris', // Fuseau horaire de l'utilisateur
+            amount,
+            status: 'pending',
+        });
+
+        await booking.save();
+
+        // Récupérer le price ID correspondant au service
+        const priceId = service === 'bilan' 
+            ? stripeConfig.coachingPriceIds.bilan 
+            : stripeConfig.coachingPriceIds.accompagnement;
+
+        console.log(`Using Stripe Price ID: ${priceId} for service: ${service}`);
+
+        // Créer la session de checkout Stripe avec le price ID
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            customer_email: contact.email,
+            success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: cancel_url,
+            metadata: {
+                booking_id: booking.id.toString(),
+                consultant,
+                service,
+                date,
+                time,
+                customer_name: contact.name,
+                customer_email: contact.email,
+                customer_phone: contact.phone,
+            },
+        });
+
+        // Mettre à jour la réservation avec l'ID de session
+        booking.stripeSessionId = session.id;
+        await booking.save();
+
+        console.log('Coaching checkout session created:', {
+            sessionId: session.id,
+            bookingId: booking.id,
+        });
+
+        res.status(200).json({
+            id: session.id,
+            url: session.url,
+        });
+    } catch (error: any) {
+        console.error('Error creating coaching checkout session:', error);
+        res.status(500).json({
+            message: 'Failed to create coaching checkout session',
+            error: error.message,
+        });
+    }
+};

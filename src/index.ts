@@ -92,7 +92,7 @@ const serve = async () => {
 
         // --- API scanmyprofilecvwithjob ---
         app.post('/api/scanmyprofilecvwithjob', async (req, res) => {
-            const { pdfUrl, jobId } = req.body as { pdfUrl?: string; jobId?: string };
+            const { pdfUrl, jobId, cvId } = req.body as { pdfUrl?: string; jobId?: string; cvId?: string };
             if (!pdfUrl || !jobId) {
                 return res.status(400).json({ message: 'pdfUrl and jobId are required' });
             }
@@ -103,7 +103,27 @@ const serve = async () => {
                 const pdfParse = (await import('pdf-parse')).default as unknown as (buffer: Buffer) => Promise<{ text: string }>;
                 const { convert } = await import('html-to-text');
                 const { Job } = await import('./database/entities/Job');
+                const { ProfileMatchResult } = await import('./database/entities/ProfileMatchResult');
                 const { default: AppDataSource } = await import('./database');
+
+                // Check if we already have a cached result for this CV + Job combination
+                if (cvId) {
+                    const matchResultRepo = AppDataSource.getRepository(ProfileMatchResult);
+                    const existingResult = await matchResultRepo.findOne({
+                        where: { cvId, jobId },
+                    });
+
+                    if (existingResult) {
+                        console.log('Returning cached profile match result');
+                        return res.json({
+                            message: `le pdf ${pdfUrl} et le job ${jobId} sont recupéré depuis le cache`,
+                            cvText: existingResult.cvText,
+                            jobText: existingResult.jobText,
+                            pythonReturn: existingResult.pythonReturn,
+                            cached: true,
+                        });
+                    }
+                }
 
                 // 1) Download PDF as Buffer
                 let pdfBuffer: Buffer;
@@ -162,11 +182,31 @@ const serve = async () => {
                     return res.status(500).json({ message: 'python_error' });
                 }
 
+                // 5) Store the result in database if cvId is provided
+                if (cvId) {
+                    try {
+                        const matchResultRepo = AppDataSource.getRepository(ProfileMatchResult);
+                        const matchResult = matchResultRepo.create({
+                            cvId,
+                            jobId,
+                            cvText,
+                            jobText,
+                            pythonReturn,
+                        });
+                        await matchResultRepo.save(matchResult);
+                        console.log('Profile match result saved to database');
+                    } catch (err) {
+                        console.error('Failed to save profile match result:', err);
+                        // Continue even if saving fails
+                    }
+                }
+
                 return res.json({
                     message: `le pdf ${pdfUrl} et le job ${job?.title || jobId} sont recupéré par l'api`,
                     cvText,
                     jobText,
                     pythonReturn,
+                    cached: false,
                 });
             } catch (e) {
                 console.error('scanmyprofilecvwithjob failed:', e);

@@ -14,3 +14,4 @@ ai-service/__pycache__/
 ai-service/*.pyc
 
 venv/
+ai-service/cv_job_matcher.py

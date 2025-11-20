@@ -22,4 +22,9 @@ export const stripeConfig = {
         [process.env.STRIPE_PRICE_ID_PRO || '']: 'pro',
         [process.env.STRIPE_PRICE_ID_ENTERPRISE || '']: 'enterprise',
     } as Record<string, string>,
+    // Price IDs pour le coaching emploi
+    coachingPriceIds: {
+        bilan: process.env.STRIPE_PRICE_ID_COACHING_BILAN || 'price_1SVKuv8RbHgy6D1mKs3OimvP',
+        accompagnement: process.env.STRIPE_PRICE_ID_COACHING_ACCOMPAGNEMENT || 'price_1SVKtK8RbHgy6D1ms33RLhCE',
+    },
 };

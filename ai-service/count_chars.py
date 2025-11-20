@@ -27,7 +27,7 @@ def clamp_score(value: float) -> int:
     return int(round(v))
 
 
-def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str, str]:
+def compute_relevance_score(cv_text: str, job_text: str) -> dict:
     if not _OPENAI_IMPORTED:
         raise RuntimeError("Le package 'openai' n'est pas installé dans l'environnement Python.")
     if not OPENAI_API_KEY:
@@ -41,17 +41,42 @@ def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str, str]
     job_snippet = (job_text or "")[:max_chars]
 
     system_prompt = (
-        "Tu es un évaluateur de matching CV ↔ Offre d'emploi. "
-        "Analyse la pertinence du texte de CV fourni par rapport au texte d'offre. "
-        "Retourne UNIQUEMENT un JSON strict avec une clé 'score' (entier 0..100) où 0 signifie 'pas pertinent' et 100 'parfaitement aligné'."
+        "Tu es un évaluateur expert de matching CV ↔ Offre d'emploi. "
+        "Tu analyses la pertinence du profil du candidat par rapport à la fiche de poste. "
+        "Tu produis une analyse argumentée, structurée et objective."
     )
     user_prompt = (
-        "CV_TEXT:\n" + cv_snippet + "\n\nJOB_TEXT:\n" + job_snippet + "\n\n"
-        "Tâches:\n"
-        "1) Évalue la pertinence globale (0..100).\n"
-        "2) Fais une analyse détaillée de la correspondance (points forts, points faibles).\n"
-        "3) Donne des recommandations concrètes et actionnables pour améliorer le score (format bref).\n\n"
-        "Réponds en JSON STRICT: {\"score\": number, \"analysis\": string, \"recommendations\": string}."
+        "PROFIL DU CANDIDAT:\n" + cv_snippet + "\n\n"
+        "FICHE DE POSTE:\n" + job_snippet + "\n\n"
+        "TÂCHE I - ANALYSE DU PROFIL:\n"
+        "1. Compare les compétences clés du candidat avec celles exigées dans la fiche de poste.\n"
+        "2. Rédige une synthèse structurée de l'adéquation.\n"
+        "3. Crée un tableau d'évaluation avec 4 colonnes:\n"
+        "   - Critères\n"
+        "   - Note (sur 10)\n"
+        "   - Raisons de la Note\n"
+        "   - Commentaires détaillés\n"
+                "   Grille de notation: 1-3 = très insuffisant, 4-5 = insuffisant, 6-7 = correct, 8-9 = bon, 10 = excellent.\n\n"
+        "TÂCHE II - CALCUL DU TAUX DE MATCH:\n"
+        "1. Calcule le taux de correspondance global (%) basé sur la moyenne pondérée des notes.\n"
+        "2. Interprète le résultat:\n"
+        "   - ≥80% : Candidat fortement aligné\n"
+        "   - <80% : Points à améliorer ou clarifier\n\n"
+        "RÉPONDS EN JSON STRICT avec cette structure:\n"
+        "{\n"
+        "  \"matchPercentage\": number (0-100),\n"
+        "  \"synthesis\": string,\n"
+        "  \"evaluationTable\": [\n"
+        "    {\n"
+        "      \"criterion\": string,\n"
+        "      \"score\": number (1-10),\n"
+        "      \"reasons\": string,\n"
+        "      \"comments\": string\n"
+        "    }\n"
+        "  ],\n"
+        "  \"interpretation\": string,\n"
+        "  \"recommendations\": string\n"
+        "}"
     )
 
     chat = client.chat.completions.create(
@@ -66,18 +91,25 @@ def compute_relevance_score(cv_text: str, job_text: str) -> tuple[int, str, str]
 
     content = (chat.choices[0].message.content or "{}").strip()
     data = json.loads(content)
-    score = clamp_score(data.get("score", 0))
-    analysis = str(data.get("analysis", ""))
-    recommendations = str(data.get("recommendations", ""))
-    return score, analysis, recommendations
+    
+    # Normaliser le matchPercentage
+    match_percentage = clamp_score(data.get("matchPercentage", 0))
+    
+    return {
+        "matchPercentage": match_percentage,
+        "synthesis": str(data.get("synthesis", "")),
+        "evaluationTable": data.get("evaluationTable", []),
+        "interpretation": str(data.get("interpretation", "")),
+        "recommendations": str(data.get("recommendations", ""))
+    }
 
 
 def main() -> None:
     payload = json.load(sys.stdin)
     cv_text = payload.get("cvText", "")
     job_text = payload.get("jobText", "")
-    score, analysis, recommendations = compute_relevance_score(cv_text, job_text)
-    print(json.dumps({"score": score, "analysis": analysis, "recommendations": recommendations}))
+    result = compute_relevance_score(cv_text, job_text)
+    print(json.dumps(result, ensure_ascii=False))
 
 
 if __name__ == "__main__":

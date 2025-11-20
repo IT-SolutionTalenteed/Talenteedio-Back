@@ -466,16 +466,50 @@ const resolver = {
                         throw createGraphQLError('You can applied for 5 jobs', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
                     }
 
+                    // Check if there's a profile match result for this CV and Job
+                    let profileMatchResult = null;
+                    if (args.input.cvId) {
+                        const { ProfileMatchResult } = await import('../../../database/entities/ProfileMatchResult');
+                        profileMatchResult = await ProfileMatchResult.findOne({
+                            where: { cvId: args.input.cvId, jobId: job.id },
+                        });
+                    }
+
                     const application = Object.assign(new Application(), {
                         job: { id: job.id },
                         talent: { id: user.talent.id },
                         cv: args.input.cvId ? { id: args.input.cvId } : undefined,
                         lm: args.input.lmId ? { id: args.input.lmId } : undefined,
+                        profileMatchResult: profileMatchResult ? { id: profileMatchResult.id } : undefined,
                     });
 
                     await Application.save(application);
 
+                    // Load CV with file to get URL
+                    const cvEntity = args.input.cvId ? await CV.findOne({ where: { id: args.input.cvId }, relations: ['file'] }) : null;
+                    const { LM } = await import('../../../database/entities');
+                    const lmEntity = args.input.lmId ? await LM.findOne({ where: { id: args.input.lmId } }) : null;
+
                     const admins = await Admin.find({ where: {}, relations: ['user'] });
+
+                    // Prepare match report for admin email
+                    let matchReportHtml = '';
+                    if (profileMatchResult) {
+                        const pythonData = profileMatchResult.pythonReturn;
+                        matchReportHtml = `
+                            <h3>📊 Rapport de Matching de Profil</h3>
+                            <p><strong>Score global:</strong> ${pythonData?.matchPercentage || 'N/A'}%</p>
+                            <p><strong>Synthèse:</strong> ${pythonData?.synthesis || 'N/A'}</p>
+                            <p><strong>Interprétation:</strong> ${pythonData?.interpretation || 'N/A'}</p>
+                            <p><strong>Recommandations:</strong> ${pythonData?.recommendations || 'N/A'}</p>
+                            <hr/>
+                        `;
+                    }
+
+                    // Prepare CV and LM info
+                    const cvLink = cvEntity?.file?.fileUrl ? new URL(path.join(process.env.HOST as string, cvEntity.file.fileUrl)).toString() : null;
+                    const cvHtml = cvLink ? `<p><strong>📄 CV:</strong> <a href="${cvLink}">Télécharger le CV</a></p>` : '<p><strong>📄 CV:</strong> Non fourni</p>';
+                    const lmHtml = lmEntity ? `<p><strong>✉️ Lettre de motivation:</strong> ${lmEntity.title}</p>` : '<p><strong>✉️ Lettre de motivation:</strong> Non fournie</p>';
 
                     await Promise.allSettled([
                         transporter.sendMail({
@@ -502,7 +536,12 @@ const resolver = {
                                 template: 'index',
                                 context: {
                                     title: `Hi ${admin.user?.name}`,
-                                    message: `A new job application must be reviewed here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'admin', 'application-in-review', application.id)).toString()}`,
+                                    message: `A new job application must be reviewed here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'admin', 'application-in-review', application.id)).toString()}
+                                    <br/><br/>
+                                    ${matchReportHtml}
+                                    ${cvHtml}
+                                    ${lmHtml}
+                                    `,
                                     host: process.env.FRONTEND_HOST,
                                     imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
                                     imageTitle: 'Talent application',
@@ -544,17 +583,51 @@ const resolver = {
                             throw createGraphQLError('Referral not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
                         }
 
+                        // Check if there's a profile match result for this CV and Job
+                        let profileMatchResult = null;
+                        if (args.input.cvId) {
+                            const { ProfileMatchResult } = await import('../../../database/entities/ProfileMatchResult');
+                            profileMatchResult = await ProfileMatchResult.findOne({
+                                where: { cvId: args.input.cvId, jobId: job.id },
+                            });
+                        }
+
                         const application = Object.assign(new Application(), {
                             job: { id: job.id },
                             talent: { id: user.talent.id },
                             referral: { id: data.referral_id },
                             cv: args.input.cvId ? { id: args.input.cvId } : undefined,
                             lm: args.input.lmId ? { id: args.input.lmId } : undefined,
+                            profileMatchResult: profileMatchResult ? { id: profileMatchResult.id } : undefined,
                         });
 
                         await Application.save(application);
 
+                        // Load CV with file to get URL
+                        const cvEntity = args.input.cvId ? await CV.findOne({ where: { id: args.input.cvId }, relations: ['file'] }) : null;
+                        const { LM } = await import('../../../database/entities');
+                        const lmEntity = args.input.lmId ? await LM.findOne({ where: { id: args.input.lmId } }) : null;
+
                         const admins = await Admin.find({ where: {}, relations: ['user'] });
+
+                        // Prepare match report for admin email
+                        let matchReportHtml = '';
+                        if (profileMatchResult) {
+                            const pythonData = profileMatchResult.pythonReturn;
+                            matchReportHtml = `
+                                <h3>📊 Rapport de Matching de Profil</h3>
+                                <p><strong>Score global:</strong> ${pythonData?.matchPercentage || 'N/A'}%</p>
+                                <p><strong>Synthèse:</strong> ${pythonData?.synthesis || 'N/A'}</p>
+                                <p><strong>Interprétation:</strong> ${pythonData?.interpretation || 'N/A'}</p>
+                                <p><strong>Recommandations:</strong> ${pythonData?.recommendations || 'N/A'}</p>
+                                <hr/>
+                            `;
+                        }
+
+                        // Prepare CV and LM info
+                        const cvLink = cvEntity?.file?.fileUrl ? new URL(path.join(process.env.HOST as string, cvEntity.file.fileUrl)).toString() : null;
+                        const cvHtml = cvLink ? `<p><strong>📄 CV:</strong> <a href="${cvLink}">Télécharger le CV</a></p>` : '<p><strong>📄 CV:</strong> Non fourni</p>';
+                        const lmHtml = lmEntity ? `<p><strong>✉️ Lettre de motivation:</strong> ${lmEntity.title}</p>` : '<p><strong>✉️ Lettre de motivation:</strong> Non fournie</p>';
 
                         await Promise.allSettled([
                             transporter.sendMail({
@@ -597,7 +670,12 @@ const resolver = {
                                     template: 'index',
                                     context: {
                                         title: `Hi ${admin.user?.name}`,
-                                        message: `A new job application must be reviewed here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'admin', 'application-in-review', application.id)).toString()}`,
+                                        message: `A new job application must be reviewed here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'admin', 'application-in-review', application.id)).toString()}
+                                        <br/><br/>
+                                        ${matchReportHtml}
+                                        ${cvHtml}
+                                        ${lmHtml}
+                                        `,
                                         host: process.env.FRONTEND_HOST,
                                         imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
                                         imageTitle: 'Talent application',

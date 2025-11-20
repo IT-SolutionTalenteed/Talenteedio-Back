@@ -173,6 +173,12 @@ type Talent {
     consent: Media
     createdAt: Date
     values: [Value]
+    tjm: Float
+    annualSalary: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
 }
 
 type Freelance {
@@ -187,6 +193,7 @@ type Freelance {
     createdAt: Date
     values: [Value]
     tjm: Float
+    annualSalary: Float
     mobility: String
     availabilityDate: Date
     desiredLocation: String
@@ -390,6 +397,12 @@ input CreateTalentInput {
     experience: Int
     gender: GENDER
     educationLevel: EDUCATIONLEVEL
+    tjm: Float
+    annualSalary: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
 }
 
 input UpdateTalentInput {
@@ -404,6 +417,12 @@ input UpdateTalentInput {
     experience: Int
     gender: GENDER
     educationLevel: EDUCATIONLEVEL
+    tjm: Float
+    annualSalary: Float
+    mobility: String
+    availabilityDate: Date
+    desiredLocation: String
+    workMode: WORKMODE
 }
 
 input CreateFreelanceInput {
@@ -413,6 +432,7 @@ input CreateFreelanceInput {
     contact: ContactInputWithoutEmail!
     values: [UpdateValueInput]!
     tjm: Float
+    annualSalary: Float
     mobility: String
     availabilityDate: Date
     desiredLocation: String
@@ -428,6 +448,7 @@ input UpdateFreelanceInput {
     contact: ContactInputWithoutEmail
     values: [UpdateValueInput]
     tjm: Float
+    annualSalary: Float
     mobility: String
     availabilityDate: Date
     desiredLocation: String

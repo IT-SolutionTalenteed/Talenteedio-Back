@@ -29,3 +29,4 @@ export { Permission } from './Permission';
 export { Referred } from './Referred';
 export { ACTIVE_STATUS } from './ActiveStatus';
 export { Ad } from './Ad';
+export { ProfileMatchResult } from './ProfileMatchResult';
