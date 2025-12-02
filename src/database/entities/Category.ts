@@ -7,6 +7,8 @@ export enum MODEL {
     REFERRAL = 'Referral',
     JOB = 'Job',
     TALENT = 'Talent',
+    FREELANCE = 'Freelance',
+    CONSULTANT = 'Consultant',
     JOB_TALENT = 'Job_Talent',
     ARTICLE = 'Article',
     EVENT = 'Event',

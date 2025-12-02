@@ -1,0 +1,78 @@
+[33mcommit 354f41a0ee14fe38d746abc7196a8d831fda131e[m[33m ([m[1;36mHEAD -> [m[1;32mdev[m[33m, [m[1;31morigin/dev[m[33m)[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Thu Nov 20 11:34:44 2025 +0000
+
+    feat(coaching): Add coaching bookings, profile matching, and migrations
+
+[33mcommit aaf8264e8a5419990804da9d669fa65995613366[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Tue Nov 18 17:05:20 2025 +0000
+
+    chore(dependencies): Remove unused node-domexception dependency
+
+[33mcommit 9802a3bab5c2e11acf457d7aff921cfdbe9ca2b6[m
+Merge: 88b41cd 5c8f844
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Tue Nov 18 16:51:42 2025 +0000
+
+    Merge branch 'dev'
+
+[33mcommit 88b41cd50972492c0e97a6aeb8ebb503921cea40[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Sun Nov 16 01:17:57 2025 +0000
+
+    feat(billing): Add Stripe integration and billing module
+
+[33mcommit 0e93dd7fa603b2b282edaf27d08fb34850cc2ab7[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Sat Nov 15 23:38:38 2025 +0000
+
+    feat(authentication): Add company registration and plan selection flow
+
+[33mcommit 77ca3ad50f4250e5792dbdc8386dacf29d7433c4[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Tue Nov 11 12:27:50 2025 +0000
+
+    Problem de token expired, regler
+
+[33mcommit 7dc58f69464cfc8734c7ca7249827722552af27b[m[33m ([m[1;32mmain[m[33m)[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Mon Nov 3 13:03:06 2025 +0000
+
+    IA en place
+
+[33mcommit f3ba86bbb0c6963426de04a3d518b22a915b8112[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Sun Nov 2 08:03:03 2025 +0000
+
+    IA part 1
+
+[33mcommit a9268534ee761c36ad210e47b026c133dea04ba1[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Fri Oct 31 16:51:19 2025 +0000
+
+    python
+
+[33mcommit a0955efc2b827d7f281d228b1338c69d961e324e[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Fri Oct 31 16:34:12 2025 +0000
+
+    text
+
+[33mcommit bbd8f0f7bf7fed7faf8d627088c7db034c8d4f13[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Wed Oct 29 16:52:26 2025 +0000
+
+    Freelance et IA
+
+[33mcommit 34a7da4912e2b3cd045f664759090e017c700bbc[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Wed Oct 22 15:21:13 2025 +0000
+
+    Add Freelance
+
+[33mcommit 700c113457affb54fe0305c925773732b308f6e7[m
+Author: [1;31mJoann002[m <joannrazafinimanana159@gmail.com>
+Date:   Wed Oct 15 14:39:51 2025 +0000
+
+    dashboard fonctionnel
