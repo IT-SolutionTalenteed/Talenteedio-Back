@@ -5,6 +5,7 @@ export { Admin } from './Admin';
 export { Company } from './Company';
 export { Referral } from './Referral';
 export { Freelance } from './Freelance';
+export { Consultant } from './Consultant';
 export { Talent } from './Talent';
 export { Article } from './Article';
 export { Media } from './Media';

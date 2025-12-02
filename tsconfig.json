@@ -104,5 +104,14 @@
         "strictPropertyInitialization": false,
         "emitDecoratorMetadata": true
     },
-    "exclude": ["node_modules", "public/**/*", "admin/**/*"]
+    "exclude": [
+        "node_modules",
+        "public/**/*",
+        "admin/**/*",
+        "build/**/*",
+        "dist/**/*",
+        "*.ts",
+        "*.js"
+    ],
+    "include": ["src/**/*"]
 }

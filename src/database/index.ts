@@ -6,6 +6,7 @@ import DBSeeder from './seeds/DBSeeder';
 import PermissionSeeder from './seeds/PermissionSeeder';
 import EventSeeder from './seeds/EventSeeder';
 import AddHRFirstClubRoleSeeder from './seeds/AddHRFirstClubRoleSeeder';
+import AddConsultantRoleSeeder from './seeds/AddConsultantRoleSeeder';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ const options: DataSourceOptions & SeederOptions = {
     synchronize: false,
     migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
     logging: process.env.NODE_ENV === 'development' ? false : false,
-    seeds: [DBSeeder, PermissionSeeder, EventSeeder, AddHRFirstClubRoleSeeder],
+    seeds: [DBSeeder, PermissionSeeder, EventSeeder, AddHRFirstClubRoleSeeder, AddConsultantRoleSeeder],
     factories: [__dirname + '/factories/**/*{.ts,.js}'],
 };
 

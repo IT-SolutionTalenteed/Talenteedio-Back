@@ -1,5 +1,5 @@
 import { BaseEntity, Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
-import { Talent, Freelance, Media } from '.';
+import { Talent, Freelance, Consultant, Media } from '.';
 
 @Entity()
 export class CV extends BaseEntity {
@@ -33,6 +33,9 @@ export class CV extends BaseEntity {
 
     @ManyToOne(() => Freelance, (freelance) => freelance.cvs, { onDelete: 'CASCADE', nullable: true })
     freelance: Freelance;
+
+    @ManyToOne(() => Consultant, (consultant) => consultant.cvs, { onDelete: 'CASCADE', nullable: true })
+    consultant: Consultant;
 
     @ManyToOne(() => Media, { onDelete: 'CASCADE', nullable: true })
     file: Media;
