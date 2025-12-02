@@ -27,7 +27,7 @@ export default (roles?: RoleName[]) => (next: any) => (_: any, args: any, contex
         }
 
         if (context.req.session.accessToken && context.req.session.accessToken === token) {
-            const user = (await User.findOne({ where: { id: context.req.session.user?.id }, relations: ['admin', 'company.permission', 'referral', 'talent', 'hrFirstClub'] })) as User;
+            const user = (await User.findOne({ where: { id: context.req.session.user?.id }, relations: ['admin', 'company.permission', 'referral', 'talent', 'hrFirstClub', 'consultant'] })) as User;
 
             if (!user) {
                 throw createGraphQLError('Access denied: user not found!', { extensions: { statusCode: 401, statusText: UNAUTHORIZED } });

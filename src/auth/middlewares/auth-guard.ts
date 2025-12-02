@@ -30,7 +30,7 @@ export default (req: Request, res: Response, next: NextFunction) => {
         }
 
         if (req.session.accessToken && req.session.accessToken === token) {
-            const user = (await User.findOne({ where: { id: req.session.user?.id }, relations: ['admin', 'company.permission', 'referral', 'talent', 'hrFirstClub'] })) as User;
+            const user = (await User.findOne({ where: { id: req.session.user?.id }, relations: ['admin', 'company.permission', 'referral', 'talent', 'hrFirstClub', 'consultant'] })) as User;
 
             if (!user) {
                 res.status(401).json({ msg: 'Access denied: user not found!' });
