@@ -15,4 +15,12 @@ export default [
         name: 'talent',
         title: 'Talent',
     },
+    {
+        name: 'consultant',
+        title: 'Consultant',
+    },
+    {
+        name: 'freelance',
+        title: 'Freelance',
+    },
 ];
