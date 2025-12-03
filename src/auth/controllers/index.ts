@@ -98,8 +98,8 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
                 });
                 return;
             }
-            
-            // Rediriger les consultants validés vers l'admin
+
+            // test a matching password
             const userWithPassword = await User.findOne({ where: { email }, select: ['password'] });
 
             const isMatch = await userWithPassword?.checkPasswd(password);
@@ -382,23 +382,17 @@ export const register = async (req: Request, res: Response) => {
                     newUser.consultant.contact.address = address;
                 }
                 await queryRunner.manager.save(newUser.consultant.contact);
-                
-                // For consultant: save user first WITHOUT the consultant relation
-                const consultantTemp = newUser.consultant;
-                newUser.consultant = undefined as any;
-                await queryRunner.manager.save(newUser);
-                
-                // Then save consultant with user reference
-                consultantTemp.user = newUser;
-                await queryRunner.manager.save(consultantTemp);
-                newUser.consultant = consultantTemp;
             } else {
                 await queryRunner.manager.save(newUser[role].contact);
-                
-                // Save user with the role entity
-                await queryRunner.manager.save(newUser);
-                
-                // Save role entity after user
+            }
+
+            // Save user with the role entity
+            await queryRunner.manager.save(newUser);
+            
+            // Save role entity after user
+            if (role === 'consultant') {
+                await queryRunner.manager.save(newUser.consultant);
+            } else {
                 await queryRunner.manager.save(newUser[role]);
             }
 
