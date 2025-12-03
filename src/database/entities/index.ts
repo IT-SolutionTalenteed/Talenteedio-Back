@@ -31,3 +31,5 @@ export { Referred } from './Referred';
 export { ACTIVE_STATUS } from './ActiveStatus';
 export { Ad } from './Ad';
 export { ProfileMatchResult } from './ProfileMatchResult';
+export { CVTransmissionLog } from './CVTransmissionLog';
+export { ApplicationFeedback } from './ApplicationFeedback';

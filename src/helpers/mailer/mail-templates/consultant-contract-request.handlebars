@@ -1,0 +1,140 @@
+<div style="text-align: center; max-width: 570px; margin: auto">
+  <a href="{{{host}}}">
+    <img
+      src="{{{imgUrl}}}"
+      alt="talenteed-logo"
+      style="max-width: 100%; height: auto"
+    />
+  </a>
+</div>
+
+<div
+  style="
+    background-image: linear-gradient(
+        to left,
+        rgba(239, 86, 52, 0.5) 50%,
+        transparent 50%
+      ),
+      url('{{{backgroundImg}}}');
+    background-position: center;
+    background-size: cover;
+    max-width: 570px;
+    margin: auto;
+    height: 230px;
+    width: 100%;
+    padding: 5px;
+  "
+>
+  <div
+    style="
+      width: calc(100% - 20px);
+      height: calc(100% - 20px);
+      border: 10px solid white;
+      display: table;
+    "
+  >
+    <div style="display: table-cell; width: 50%"></div>
+    <div
+      style="
+        margin-left: auto;
+        display: table-cell;
+        height: 100%;
+        vertical-align: middle;
+      "
+    >
+      <h1
+        style="
+          text-align: center;
+          font-size: x-large;
+          padding: 0 7%;
+          color: white;
+          margin: 0;
+          margin-top: auto;
+        "
+      >
+        Félicitations ! 🎉
+      </h1>
+    </div>
+  </div>
+</div>
+
+<div style="padding: 10px 0; max-width: 570px; margin: auto">
+  <p>Bonjour {{{consultantName}}},</p>
+  
+  <p>
+    <strong>Excellente nouvelle !</strong> Votre candidature pour le poste de 
+    <strong>{{{jobTitle}}}</strong> a été validée.
+  </p>
+  
+  <div style="background-color: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+    <h3 style="color: #28a745; margin-top: 0;">✅ Candidature Validée</h3>
+    <p>
+      Nous sommes ravis de vous compter parmi nos consultants. Pour finaliser votre intégration, 
+      nous avons besoin que vous signiez votre contrat de consultant.
+    </p>
+  </div>
+  
+  <h4>📋 Prochaines étapes :</h4>
+  <ol>
+    <li>Consultez le contrat ci-dessous</li>
+    <li>Signez électroniquement le document</li>
+    <li>Attendez la confirmation finale</li>
+  </ol>
+  
+  <div style="text-align: center; margin: 30px 0;">
+    <a 
+      href="{{{contractUrl}}}" 
+      style="
+        background-color: #28a745;
+        color: white;
+        padding: 12px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        font-weight: bold;
+      "
+    >
+      📝 Signer le contrat
+    </a>
+  </div>
+  
+  <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+    <h4>ℹ️ Informations sur le contrat</h4>
+    <p><strong>Type :</strong> Contrat de consultant</p>
+    <p><strong>Client :</strong> {{{companyName}}}</p>
+    <p><strong>Poste :</strong> {{{jobTitle}}}</p>
+    {{#if contractDetails}}
+    <p><strong>Détails :</strong> {{{contractDetails}}}</p>
+    {{/if}}
+  </div>
+  
+  <p>
+    Si vous avez des questions concernant le contrat ou le processus de signature, 
+    n'hésitez pas à nous contacter à <a href="mailto:contact@solutiontalentit.com">contact@solutiontalentit.com</a>.
+  </p>
+  
+  <p>
+    Nous sommes impatients de travailler avec vous !
+  </p>
+  
+  <p>Cordialement,<br/>L'équipe Talenteed.io</p>
+</div>
+
+<div style="text-align: center; max-width: 570px; margin: auto">
+  <div>
+    <a href="{{{host}}}">
+      <img
+        src="{{{imgUrl}}}"
+        alt="talenteed-logo"
+        style="max-width: 100%; height: auto"
+      />
+    </a>
+  </div>
+  <div style="font-size: 0.8rem">
+    <p>
+      Copyright (C) 2024 SOLUTION TALENTEED. All rights reserved.
+      <br />
+      Notre adresse email : contact@solutiontalentit.com
+    </p>
+  </div>
+</div>

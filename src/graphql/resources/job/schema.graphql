@@ -27,6 +27,8 @@ type Query {
     getApplications(input: PaginationInput, filter: ApplicationFilter): PaginateApplication
     getOneApplication(input: GetOneJobInput): Application
     matchCVWithJob(input: MatchCVInput): MatchResult
+    getCVTransmissionLogs(applicationId: String!): [CVTransmissionLog]
+    getApplicationFeedbacks(applicationId: String!): [ApplicationFeedback]
 }
 
 type Mutation {
@@ -38,6 +40,9 @@ type Mutation {
     deleteApplication(input: DeleteJobInput): Payload
     changeApplicationStatus(input: ChangeApplicationStatusInput): Payload
     updateMultipleJobs(input: UpdateMultipleJobsInput): Payload
+    validatePendingApplication(input: ValidatePendingApplicationInput): Payload
+    sendConsultantContract(input: SendConsultantContractInput): Payload
+    submitApplicationFeedback(input: ApplicationFeedbackInput): Payload
 }
 
 type PaginateJob {
@@ -170,6 +175,9 @@ input ChangeApplicationStatusInput {
 
 enum ApplicationStatus {
     in_review
+    pending_review
+    auto_sent_to_client
+    awaiting_contract
     validated
     denied
     selected
@@ -254,4 +262,43 @@ type MatchResult {
     strengths: [String]!
     gaps: [String]!
     recommendation: String!
+}
+
+type CVTransmissionLog {
+    id: String!
+    recipientEmail: String!
+    recipientType: String!
+    transmissionMethod: String!
+    hasWatermark: Boolean!
+    watermarkText: String
+    transmittedAt: Date!
+}
+
+type ApplicationFeedback {
+    id: String!
+    reviewedBy: String!
+    reviewerType: String!
+    matchScoreAccuracy: Int
+    comments: String
+    wasHired: Boolean!
+    createdAt: Date!
+}
+
+input ValidatePendingApplicationInput {
+    applicationId: String!
+    approved: Boolean!
+    adminNote: String
+}
+
+input SendConsultantContractInput {
+    applicationId: String!
+    contractUrl: String!
+}
+
+input ApplicationFeedbackInput {
+    applicationId: String!
+    matchScoreAccuracy: Int
+    comments: String
+    criteriaFeedback: String
+    wasHired: Boolean!
 }

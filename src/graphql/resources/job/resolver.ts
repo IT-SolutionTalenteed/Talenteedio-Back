@@ -288,6 +288,29 @@ const resolver = {
                 throw returnError(error);
             }
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        getCVTransmissionLogs: async (_: any, args: { applicationId: string }): Promise<any[]> => {
+            try {
+                const { TransmissionLogService } = await import('../../../helpers/transmission-log');
+                return await TransmissionLogService.getLogsForApplication(args.applicationId);
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        getApplicationFeedbacks: async (_: any, args: { applicationId: string }): Promise<any[]> => {
+            try {
+                const { ApplicationFeedback } = await import('../../../database/entities');
+                return await ApplicationFeedback.find({
+                    where: { application: { id: args.applicationId } },
+                    order: { createdAt: 'DESC' },
+                });
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
     },
     Mutation: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -485,6 +508,19 @@ const resolver = {
 
                     await Application.save(application);
 
+                    // Déclencher le traitement automatique basé sur le score de matching
+                    if (profileMatchResult) {
+                        const { ApplicationProcessingService } = await import('../../../helpers/application-processing');
+                        try {
+                            await ApplicationProcessingService.processApplication(application.id);
+                            // Le workflow automatique gère tous les emails
+                            return { success: true };
+                        } catch (error) {
+                            console.error('Error in automatic processing:', error);
+                            // En cas d'erreur, continuer avec le flow normal
+                        }
+                    }
+
                     // Load CV with file to get URL
                     const cvEntity = args.input.cvId ? await CV.findOne({ where: { id: args.input.cvId }, relations: ['file'] }) : null;
                     const { LM } = await import('../../../database/entities');
@@ -602,6 +638,19 @@ const resolver = {
                         });
 
                         await Application.save(application);
+
+                        // Déclencher le traitement automatique basé sur le score de matching
+                        if (profileMatchResult) {
+                            const { ApplicationProcessingService } = await import('../../../helpers/application-processing');
+                            try {
+                                await ApplicationProcessingService.processApplication(application.id);
+                                // Le workflow automatique gère tous les emails
+                                return { success: true };
+                            } catch (error) {
+                                console.error('Error in automatic processing:', error);
+                                // En cas d'erreur, continuer avec le flow normal
+                            }
+                        }
 
                         // Load CV with file to get URL
                         const cvEntity = args.input.cvId ? await CV.findOne({ where: { id: args.input.cvId }, relations: ['file'] }) : null;
@@ -928,6 +977,51 @@ const resolver = {
                 throw returnError(error);
             }
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        validatePendingApplication: async (_: any, args: { input: { applicationId: string; approved: boolean; adminNote?: string } }): Promise<Payload> => {
+            try {
+                const { ApplicationProcessingService } = await import('../../../helpers/application-processing');
+                await ApplicationProcessingService.validatePendingApplication(args.input.applicationId, args.input.approved, args.input.adminNote);
+                return { success: true };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sendConsultantContract: async (_: any, args: { input: { applicationId: string; contractUrl: string } }): Promise<Payload> => {
+            try {
+                const { ApplicationProcessingService } = await import('../../../helpers/application-processing');
+                await ApplicationProcessingService.sendConsultantContract(args.input.applicationId, args.input.contractUrl);
+                return { success: true };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        submitApplicationFeedback: async (_: any, args: { input: { applicationId: string; matchScoreAccuracy?: number; comments?: string; criteriaFeedback?: string; wasHired: boolean } }, context: any): Promise<Payload> => {
+            try {
+                const user = context.req.session.user as User;
+                const { ApplicationFeedback, REVIEWER_TYPE } = await import('../../../database/entities/ApplicationFeedback');
+
+                const feedback = ApplicationFeedback.create({
+                    application: { id: args.input.applicationId } as Application,
+                    reviewedBy: user.id,
+                    reviewerType: user.admin ? REVIEWER_TYPE.ADMIN : REVIEWER_TYPE.CLIENT,
+                    matchScoreAccuracy: args.input.matchScoreAccuracy,
+                    comments: args.input.comments,
+                    criteriaFeedback: args.input.criteriaFeedback ? JSON.parse(args.input.criteriaFeedback) : null,
+                    wasHired: args.input.wasHired,
+                });
+
+                await feedback.save();
+                return { success: true };
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
     },
 };
 
@@ -945,6 +1039,11 @@ const resolversComposition = {
     'Mutation.deleteApplication': [graphqlGuard(['admin', 'talent'])],
     'Mutation.changeApplicationStatus': [graphqlGuard(['admin', 'company'])],
     'Mutation.updateMultipleJobs': [graphqlGuard(['admin'])],
+    'Mutation.validatePendingApplication': [graphqlGuard(['admin'])],
+    'Mutation.sendConsultantContract': [graphqlGuard(['admin'])],
+    'Mutation.submitApplicationFeedback': [graphqlGuard(['admin', 'company'])],
+    'Query.getCVTransmissionLogs': [graphqlGuard(['admin'])],
+    'Query.getApplicationFeedbacks': [graphqlGuard(['admin', 'company'])],
 };
 
 export default composeResolvers(resolver, resolversComposition);

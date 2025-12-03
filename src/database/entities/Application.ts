@@ -4,6 +4,9 @@ import { Job, Talent, Freelance, Consultant, Referral, CV, LM, ProfileMatchResul
 
 export enum APPLICATION_STATUS {
     INREVIEW = 'in_review',
+    PENDING_REVIEW = 'pending_review',
+    AUTO_SENT_TO_CLIENT = 'auto_sent_to_client',
+    AWAITING_CONTRACT = 'awaiting_contract',
     VALIDATED = 'validated',
     DENIED = 'denied',
     SELECTED = 'selected',
@@ -48,6 +51,15 @@ export class Application extends BaseEntity {
 
     @Column({ nullable: true, type: 'text' })
     referral_recomandation: string;
+
+    @Column({ type: 'int', nullable: true })
+    matchScore: number;
+
+    @Column({ type: 'enum', enum: ['AUTO', 'MANUAL'], default: 'MANUAL' })
+    processingType: string;
+
+    @Column({ type: 'text', nullable: true })
+    rejectionReason: string;
 
     @CreateDateColumn()
     createdAt: Date; // Creation date

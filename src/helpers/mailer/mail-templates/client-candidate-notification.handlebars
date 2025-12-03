@@ -1,0 +1,139 @@
+<div style="text-align: center; max-width: 570px; margin: auto">
+  <a href="{{{host}}}">
+    <img
+      src="{{{imgUrl}}}"
+      alt="talenteed-logo"
+      style="max-width: 100%; height: auto"
+    />
+  </a>
+</div>
+
+<div
+  style="
+    background-image: linear-gradient(
+        to left,
+        rgba(239, 86, 52, 0.5) 50%,
+        transparent 50%
+      ),
+      url('{{{backgroundImg}}}');
+    background-position: center;
+    background-size: cover;
+    max-width: 570px;
+    margin: auto;
+    height: 230px;
+    width: 100%;
+    padding: 5px;
+  "
+>
+  <div
+    style="
+      width: calc(100% - 20px);
+      height: calc(100% - 20px);
+      border: 10px solid white;
+      display: table;
+    "
+  >
+    <div style="display: table-cell; width: 50%"></div>
+    <div
+      style="
+        margin-left: auto;
+        display: table-cell;
+        height: 100%;
+        vertical-align: middle;
+      "
+    >
+      <h1
+        style="
+          text-align: center;
+          font-size: x-large;
+          padding: 0 7%;
+          color: white;
+          margin: 0;
+          margin-top: auto;
+        "
+      >
+        Nouveau Candidat Qualifié
+      </h1>
+    </div>
+  </div>
+</div>
+
+<div style="padding: 10px 0; max-width: 570px; margin: auto">
+  <p>Bonjour {{{companyName}}},</p>
+  
+  <p>
+    Nous avons le plaisir de vous présenter un candidat hautement qualifié pour votre offre 
+    <strong>{{{jobTitle}}}</strong>.
+  </p>
+  
+  <div style="background-color: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #EF5634; margin-top: 0;">📊 Score de Matching : {{{matchScore}}}%</h3>
+    
+    <h4>👤 Profil du candidat</h4>
+    <p><strong>Nom :</strong> {{{candidateName}}}</p>
+    <p><strong>Email :</strong> {{{candidateEmail}}}</p>
+    
+    <h4>✨ Points forts</h4>
+    <ul>
+      {{#each strengths}}
+        <li>{{this}}</li>
+      {{/each}}
+    </ul>
+    
+    {{#if recommendation}}
+    <h4>💡 Recommandation</h4>
+    <p>{{{recommendation}}}</p>
+    {{/if}}
+  </div>
+  
+  <p>
+    <strong>📄 CV en pièce jointe</strong> (avec filigrane de sécurité)
+  </p>
+  
+  <p>
+    Ce candidat a été sélectionné automatiquement par notre système d'intelligence artificielle 
+    en raison de son excellente correspondance avec vos critères.
+  </p>
+  
+  <div style="text-align: center; margin: 30px 0;">
+    <a 
+      href="{{{applicationUrl}}}" 
+      style="
+        background-color: #EF5634;
+        color: white;
+        padding: 12px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        font-weight: bold;
+      "
+    >
+      Voir le profil complet
+    </a>
+  </div>
+  
+  <p>
+    Pour planifier un entretien ou obtenir plus d'informations, n'hésitez pas à nous contacter.
+  </p>
+  
+  <p>Cordialement,<br/>L'équipe Talenteed.io</p>
+</div>
+
+<div style="text-align: center; max-width: 570px; margin: auto">
+  <div>
+    <a href="{{{host}}}">
+      <img
+        src="{{{imgUrl}}}"
+        alt="talenteed-logo"
+        style="max-width: 100%; height: auto"
+      />
+    </a>
+  </div>
+  <div style="font-size: 0.8rem">
+    <p>
+      Copyright (C) 2024 SOLUTION TALENTEED. All rights reserved.
+      <br />
+      Notre adresse email : contact@solutiontalentit.com
+    </p>
+  </div>
+</div>
