@@ -1744,7 +1744,7 @@ const resolversComposition: any = {
     'Query.getOneTalent': [guard(['admin', 'talent'])],
     'Query.getFreelances': [guard(['admin'])],
     'Query.getOneFreelance': [guard(['admin', 'freelance'])],
-    'Query.getConsultants': [guard(['admin'])],
+    // 'Query.getConsultants': [guard(['admin'])], // Public access for coaching-emploi page
     'Query.getOneConsultant': [guard(['admin', 'consultant'])],
     'Query.getCVs': [guard(['talent', 'freelance', 'consultant', 'admin'])],
     'Query.getOneCV': [guard(['talent', 'admin'])],

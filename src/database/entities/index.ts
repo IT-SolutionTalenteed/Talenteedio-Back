@@ -33,3 +33,4 @@ export { Ad } from './Ad';
 export { ProfileMatchResult } from './ProfileMatchResult';
 export { CVTransmissionLog } from './CVTransmissionLog';
 export { ApplicationFeedback } from './ApplicationFeedback';
+export { Pricing } from './Pricing';

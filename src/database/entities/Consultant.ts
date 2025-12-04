@@ -2,6 +2,7 @@ import { BaseEntity, BeforeInsert, BeforeUpdate, Column, CreateDateColumn, Entit
 
 import { Role, User, Category, Contact, Application, Value, CV, LM } from '.';
 import { STATUS } from './Status';
+import { Pricing } from './Pricing';
 
 export enum WORKMODE {
     REMOTE = 'remote',
@@ -52,6 +53,9 @@ export class Consultant extends BaseEntity {
 
     @OneToMany(() => LM, (lm) => lm.consultant)
     lms: LM[];
+
+    @OneToMany(() => Pricing, (pricing) => pricing.consultant)
+    pricings: Pricing[];
 
     // Champs spécifiques au consultant
     @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })

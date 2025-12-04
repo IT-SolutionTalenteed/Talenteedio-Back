@@ -43,7 +43,7 @@
     "typeorm:entity:create": "typeorm entity:create",
     "typeorm:migration:generate": "typeorm-ts-node-esm migration:generate -d src/database",
     "typeorm:migration:create": "typeorm-ts-node-esm migration:create",
-    "typeorm:migration:run": "typeorm-ts-node-esm migration:run -d src/database/index.ts",
+    "typeorm:migration:run": "typeorm-ts-node-esm migration:run -d src/database",
     "typeorm:migration:revert": "typeorm-ts-node-esm migration:revert -d src/database",
     "typeorm:db:seed": "ts-node ./node_modules/typeorm-extension/dist/cli/index.js seed -r src/database -d index",
     "generate:consent:blank": "ts-node ./src/helpers/scripts/generateBlankConsent",

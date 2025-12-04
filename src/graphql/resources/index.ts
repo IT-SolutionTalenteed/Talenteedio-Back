@@ -18,6 +18,7 @@ import permissionSchema from './permission';
 import referredSchema from './referred';
 import joinUsSchema from './joinUs';
 import adSchema from './ad';
+import pricingSchema from './pricing';
 
 export {
     mailerSchema,
@@ -40,4 +41,5 @@ export {
     referredSchema,
     joinUsSchema,
     adSchema,
+    pricingSchema,
 };

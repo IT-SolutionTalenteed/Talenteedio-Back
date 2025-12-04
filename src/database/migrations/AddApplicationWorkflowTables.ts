@@ -38,18 +38,21 @@ export class AddApplicationWorkflowTables1733000000000 implements MigrationInter
                 columns: [
                     {
                         name: 'id',
-                        type: 'uuid',
+                        type: 'varchar',
+                        length: '36',
                         isPrimary: true,
+                        isGenerated: true,
                         generationStrategy: 'uuid',
-                        default: 'uuid_generate_v4()',
                     },
                     {
                         name: 'applicationId',
-                        type: 'uuid',
+                        type: 'varchar',
+                        length: '36',
                     },
                     {
                         name: 'cvId',
-                        type: 'uuid',
+                        type: 'varchar',
+                        length: '36',
                     },
                     {
                         name: 'recipientEmail',
@@ -118,14 +121,16 @@ export class AddApplicationWorkflowTables1733000000000 implements MigrationInter
                 columns: [
                     {
                         name: 'id',
-                        type: 'uuid',
+                        type: 'varchar',
+                        length: '36',
                         isPrimary: true,
+                        isGenerated: true,
                         generationStrategy: 'uuid',
-                        default: 'uuid_generate_v4()',
                     },
                     {
                         name: 'applicationId',
-                        type: 'uuid',
+                        type: 'varchar',
+                        length: '36',
                     },
                     {
                         name: 'reviewedBy',

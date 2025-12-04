@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import generatePassword from 'generate-password';
 
 import AppDataSource from '../../database';
-import { CV, Contact, Media, Referral, Freelance, Consultant, Talent, User, UserSession, Value, Company, Permission } from '../../database/entities';
+import { CV, Contact, Media, Referral, Freelance, Consultant, Talent, User, UserSession, Value, Company, Permission, Category, Address } from '../../database/entities';
 import { validateEmail } from '../../helpers/utils';
 import transporter from '../../helpers/mailer';
 
@@ -179,6 +179,7 @@ export const register = async (req: Request, res: Response) => {
     await queryRunner.startTransaction();
 
     try {
+        console.log('[REGISTER] Starting registration process');
         const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, tjm, mobility, availabilityDate, desiredLocation, workMode, company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId } = {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
@@ -206,10 +207,13 @@ export const register = async (req: Request, res: Response) => {
         };
 
         // Error handling
+        console.log('[REGISTER] Validating fields for role:', role, { email, firstname, lastname, phone, cvId, categoryId });
         if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone
             || ((role === 'talent' || role === 'freelance') && (values.length === 0 || !cvId))
+            || (role === 'consultant' && !cvId)
             || (role === 'company' && !company_name)
         ) {
+            await queryRunner.rollbackTransaction();
             res.status(400).json({ msg: 'All fields are required!' });
             return;
         }
@@ -238,11 +242,15 @@ export const register = async (req: Request, res: Response) => {
         }
         //
 
+        console.log('[REGISTER] Checking if user exists');
         const user = await User.findOneBy({ email: email });
 
         if (user) {
+            await queryRunner.rollbackTransaction();
             res.status(400).json({ msg: 'This email already exists!' });
+            return;
         } else {
+            console.log('[REGISTER] Creating new user for role:', role);
             const newUser = new User();
 
             newUser.email = email;
@@ -281,6 +289,7 @@ export const register = async (req: Request, res: Response) => {
                 if (desiredLocation !== null) newUser.freelance.desiredLocation = desiredLocation;
                 if (workMode !== null) newUser.freelance.workMode = workMode as any;
             } else if (role === 'consultant') {
+                console.log('[REGISTER] Creating consultant with cvId:', cvId);
                 newUser.consultant = new Consultant();
                 newUser.consultant.values = [];
                 for (const value of values) {
@@ -301,7 +310,6 @@ export const register = async (req: Request, res: Response) => {
                 if (yearsOfExperience !== null && yearsOfExperience !== undefined) newUser.consultant.yearsOfExperience = parseInt(yearsOfExperience);
                 // Category
                 if (categoryId) {
-                    const { Category } = require('../../database/entities');
                     const category = await Category.findOne({ where: { id: categoryId } });
                     if (category) {
                         newUser.consultant.category = category;
@@ -322,11 +330,11 @@ export const register = async (req: Request, res: Response) => {
                 }
                 // Address (create only if at least minimal info provided)
                 if (address_line || postalCode || city || country) {
-                    const address = new (require('../../database/entities').Address)();
+                    const address = new Address();
                     address.line = address_line || '';
                     address.postalCode = postalCode || '';
                     address.city = city || '';
-                    address.state = state || null;
+                    address.state = state || undefined;
                     address.country = country || '';
                     // Save address through manager so Contact can reference it
                     await queryRunner.manager.save(address);
@@ -334,7 +342,6 @@ export const register = async (req: Request, res: Response) => {
                 }
                 // Category
                 if (categoryId) {
-                    const { Category } = require('../../database/entities');
                     const category = await Category.findOne({ where: { id: categoryId } });
                     if (category) {
                         newUser.company.category = category;
@@ -342,7 +349,6 @@ export const register = async (req: Request, res: Response) => {
                 }
                 // Logo
                 if (logoId) {
-                    const { Media } = require('../../database/entities');
                     const logo = await Media.findOne({ where: { id: logoId } });
                     if (logo) {
                         newUser.company.logo = logo;
@@ -372,11 +378,11 @@ export const register = async (req: Request, res: Response) => {
             if (role === 'consultant') {
                 // Save address first if provided
                 if (address_line || postalCode || city || country) {
-                    const address = new (require('../../database/entities').Address)();
+                    const address = new Address();
                     address.line = address_line || '';
                     address.postalCode = postalCode || '';
                     address.city = city || '';
-                    address.state = state || null;
+                    address.state = state || undefined;
                     address.country = country || '';
                     await queryRunner.manager.save(address);
                     newUser.consultant.contact.address = address;
@@ -386,16 +392,30 @@ export const register = async (req: Request, res: Response) => {
                 await queryRunner.manager.save(newUser[role].contact);
             }
 
-            // Save user with the role entity
+            // Save user first
+            console.log('[REGISTER] Saving user');
             await queryRunner.manager.save(newUser);
             
-            // Save role entity after user
+            // Link role entity to user and save
+            console.log('[REGISTER] Saving role entity');
             if (role === 'consultant') {
+                newUser.consultant.user = newUser;
                 await queryRunner.manager.save(newUser.consultant);
-            } else {
-                await queryRunner.manager.save(newUser[role]);
+            } else if (role === 'talent') {
+                newUser.talent.user = newUser;
+                await queryRunner.manager.save(newUser.talent);
+            } else if (role === 'freelance') {
+                newUser.freelance.user = newUser;
+                await queryRunner.manager.save(newUser.freelance);
+            } else if (role === 'company') {
+                newUser.company.user = newUser;
+                await queryRunner.manager.save(newUser.company);
+            } else if (role === 'referral') {
+                newUser.referral.user = newUser;
+                await queryRunner.manager.save(newUser.referral);
             }
 
+            console.log('[REGISTER] Creating CV if needed');
             if (role === 'talent') {
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.talent = newUser.talent;
@@ -404,24 +424,22 @@ export const register = async (req: Request, res: Response) => {
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.freelance = newUser.freelance;
                 await queryRunner.manager.save(cv);
-            } else if (role === 'consultant') {
+            } else if (role === 'consultant' && cvId) {
+                // CV optionnel pour les consultants lors de l'inscription
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.consultant = newUser.consultant;
                 await queryRunner.manager.save(cv);
             }
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            jwt.sign(email, process.env.SECRET_VERIFY_MAIL as string, async (error: any, token: string | undefined) => {
-                if (error) {
-                    res.status(500).json({ msg: 'Internal error!' });
-                    throw error;
-                }
+            // Commit DB changes BEFORE sending email to avoid failing registration on mail errors
+            console.log('[REGISTER] Committing transaction');
+            await queryRunner.commitTransaction();
 
-                // Commit DB changes BEFORE sending email to avoid failing registration on mail errors
-                await queryRunner.commitTransaction();
+            // Generate JWT token synchronously
+            const token = jwt.sign(email, process.env.SECRET_VERIFY_MAIL as string);
 
-                try {
-                    if (role === 'consultant') {
+            try {
+                if (role === 'consultant') {
                         // Pour les consultants : email de confirmation d'inscription
                         await transporter.sendMail({
                             from: 'Talenteed.io ' + process.env.MAILUSER,
@@ -439,25 +457,73 @@ export const register = async (req: Request, res: Response) => {
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         } as any);
 
-                        // Email à l'administrateur
+                        // Email à l'administrateur avec CV en pièce jointe
                         const adminEmail = process.env.ADMIN_EMAIL || process.env.MAILUSER;
-                        await transporter.sendMail({
+                        
+                        // Récupérer le nom de la catégorie et le CV
+                        let categoryName = 'Non spécifiée';
+                        let cvUrl = '';
+                        
+                        if (categoryId) {
+                            try {
+                                const category = await Category.findOne({ where: { id: categoryId } });
+                                if (category) {
+                                    categoryName = category.name;
+                                }
+                            } catch (error) {
+                                console.error('Erreur lors de la récupération de la catégorie:', error);
+                            }
+                        }
+                        
+                        // Récupérer l'URL du CV
+                        if (cvId) {
+                            try {
+                                const cvMedia = await Media.findOne({ where: { id: cvId } });
+                                if (cvMedia && cvMedia.fileUrl) {
+                                    cvUrl = cvMedia.fileUrl;
+                                }
+                            } catch (error) {
+                                console.error('Erreur lors de la récupération du CV:', error);
+                            }
+                        }
+                        
+                        // Préparer les informations du consultant avec lien CV cliquable
+                        const consultantInfoLines = [
+                            `<strong>Nom :</strong> ${newUser.firstname} ${newUser.lastname}`,
+                            `<strong>Email :</strong> ${email}`,
+                            `<strong>Téléphone :</strong> ${phone}`,
+                            `<strong>Catégorie :</strong> ${categoryName}`,
+                            `<strong>Expertise :</strong> ${req.body.expertise || 'Non spécifiée'}`,
+                            `<strong>Années d'expérience :</strong> ${req.body.yearsOfExperience || 'Non spécifiée'}`,
+                            `<strong>Adresse :</strong> ${address_line || ''}, ${postalCode || ''} ${city || ''}, ${state || ''} ${country || ''}`,
+                        ];
+                        
+                        if (cvUrl) {
+                            consultantInfoLines.push(`<strong>CV :</strong> <a href="${cvUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">Télécharger le CV</a>`);
+                        }
+                        
+                        const consultantInfo = consultantInfoLines.join('<br>');
+
+                        const mailOptions: any = {
                             from: 'Talenteed.io ' + process.env.MAILUSER,
                             to: adminEmail,
                             subject: 'Nouvelle inscription consultant à valider',
                             template: 'index',
                             context: {
                                 title: 'Nouvelle inscription consultant',
-                                message: `Un nouveau consultant s'est inscrit et attend votre validation :\n\nNom : ${newUser.firstname} ${newUser.lastname}\nEmail : ${email}\nExpertise : ${req.body.expertise || 'Non spécifiée'}\n\nConnectez-vous à l'administration pour valider ce compte.`,
+                                message: `Un nouveau consultant s'est inscrit et attend votre validation :<br><br>${consultantInfo}<br><br>Connectez-vous à l'administration pour valider ce compte.`,
                                 host: process.env.FRONTEND_HOST,
                                 imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
                                 imageTitle: 'Action requise',
                                 backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
                             },
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        } as any);
-                    } else {
-                        // Pour les autres rôles : email de vérification classique
+                        };
+
+                        // Le CV est déjà inclus dans le message via son URL
+
+                    await transporter.sendMail(mailOptions);
+                } else {
+                    // Pour les autres rôles : email de vérification classique
                         await transporter.sendMail({
                             from: 'Talenteed.io ' + process.env.MAILUSER,
                             to: email,
@@ -472,15 +538,15 @@ export const register = async (req: Request, res: Response) => {
                                 backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
                             },
                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        } as any);
-                    }
-                } catch (error) {
-                    // Log and continue – registration is successful, but email failed
-                    console.error('Email sending failed on registration:', error);
+                    } as any);
                 }
+            } catch (error) {
+                // Log and continue – registration is successful, but email failed
+                console.error('Email sending failed on registration:', error);
+            }
 
-                try {
-                    if (role === 'talent') {
+            try {
+                if (role === 'talent') {
                         const talent = (await Talent.findOne({ where: { id: newUser.talent.id }, relations: ['user'] })) as Talent;
 
                         const { fileUrl, fileName, fileType } = await generateConsentForTalent(talent, talent.user);
@@ -491,29 +557,35 @@ export const register = async (req: Request, res: Response) => {
                         });
                         await consent.save();
 
-                        talent.consent = consent;
-                        await talent.save();
-                    }
-                } catch (error) {
-                    // Do not fail registration if consent generation fails; just log
-                    console.error('Post-registration processing failed:', error);
+                    talent.consent = consent;
+                    await talent.save();
                 }
+            } catch (error) {
+                // Do not fail registration if consent generation fails; just log
+                console.error('Post-registration processing failed:', error);
+            }
 
-                // Pour les consultants, ne pas générer de token - compte en attente de validation
-                if (role === 'consultant') {
-                    res.status(200).json({ 
-                        msg: 'Inscription réussie. Votre compte est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
-                        pending: true 
-                    });
-                } else {
-                    generateAccessToken(req, res, newUser);
-                }
-            });
+            // Pour les consultants, ne pas générer de token - compte en attente de validation
+            if (role === 'consultant') {
+                res.status(200).json({ 
+                    msg: 'Inscription réussie. Votre compte est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
+                    pending: true 
+                });
+            } else {
+                generateAccessToken(req, res, newUser);
+            }
         }
     } catch (error) {
         await queryRunner.rollbackTransaction();
-        res.status(500).json({ msg: 'Internal error!' });
-        throw error;
+        console.error('Registration error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        res.status(500).json({ msg: 'Internal error!', error: errorMessage });
+        return;
+    } finally {
+        // Ensure queryRunner is released
+        if (!queryRunner.isReleased) {
+            await queryRunner.release();
+        }
     }
 };
 

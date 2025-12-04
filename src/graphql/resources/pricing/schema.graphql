@@ -1,0 +1,44 @@
+# import Consultant from '../user/schema.graphql'
+
+type Pricing {
+  id: ID!
+  title: String!
+  description: String!
+  price: Float!
+  unit: String
+  consultant: Consultant
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CreatePricingInput {
+  title: String!
+  description: String!
+  price: Float!
+  unit: String
+  consultantId: ID!
+}
+
+input UpdatePricingInput {
+  id: ID!
+  title: String
+  description: String
+  price: Float
+  unit: String
+}
+
+type PricingList {
+  rows: [Pricing!]!
+  count: Int!
+}
+
+type Query {
+  getPricings(consultantId: ID!): PricingList!
+  getOnePricing(id: ID!): Pricing
+}
+
+type Mutation {
+  createPricing(input: CreatePricingInput!): Pricing!
+  updatePricing(input: UpdatePricingInput!): Pricing!
+  deletePricing(id: ID!): Boolean!
+}
