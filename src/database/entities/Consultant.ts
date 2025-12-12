@@ -82,6 +82,9 @@ export class Consultant extends BaseEntity {
     @Column({ type: 'int', nullable: true })
     yearsOfExperience: number;
 
+    @Column('json', { nullable: true })
+    qualities: string[]; // Maximum 3 qualités du consultant
+
     @BeforeInsert()
     @BeforeUpdate()
     async setDefaultRole() {

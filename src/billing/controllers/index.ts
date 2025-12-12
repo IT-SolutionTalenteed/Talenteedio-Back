@@ -412,40 +412,85 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     console.log('Checkout session completed:', session.id);
 
-    // Vérifier si c'est une réservation de coaching
-    const bookingId = session.metadata?.booking_id;
-    if (bookingId) {
-        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
-        const booking = await CoachingBooking.findOne({ where: { id: parseInt(bookingId) } });
+    // Vérifier si c'est une réservation de coaching avec le nouveau système
+    const bookingId = session.metadata?.bookingId;
+    const isCoachingBooking = session.metadata?.type === 'coaching';
+    
+    if (bookingId && isCoachingBooking) {
+        try {
+            // Importer le service de booking
+            const { BookingService } = await import('../../graphql/resources/booking/service');
+            const { Booking } = await import('../../database/entities/Booking');
+            const { Wallet } = await import('../../database/entities/Wallet');
+            const { WalletTransaction } = await import('../../database/entities/WalletTransaction');
+            const { Consultant } = await import('../../database/entities/Consultant');
+            const { Pricing } = await import('../../database/entities/Pricing');
+            
+            const AppDataSource = (await import('../../database')).default;
+            const bookingService = new BookingService(
+                AppDataSource.getRepository(Booking),
+                AppDataSource.getRepository(Wallet),
+                AppDataSource.getRepository(WalletTransaction),
+                AppDataSource.getRepository(Consultant),
+                AppDataSource.getRepository(Pricing),
+            );
 
-        if (booking) {
-            booking.status = 'paid';
-            booking.stripePaymentIntentId = session.payment_intent as string;
-            await booking.save();
+            // Confirmer le paiement de la réservation
+            await bookingService.confirmBookingPayment(bookingId, session.payment_intent as string);
 
-            console.log(`Coaching booking ${bookingId} marked as paid`);
+            console.log(`Coaching booking ${bookingId} confirmed and wallet updated`);
 
-            // Envoyer un email de confirmation au client
-            try {
-                const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
-                const serviceName = booking.serviceType === 'bilan' ? 'Bilan Emploi (2h)' : 'Accompagnement Emploi (2 mois)';
-                
-                await sendCoachingConfirmation({
-                    name: booking.name,
-                    email: booking.email,
-                    consultant: booking.consultant.charAt(0).toUpperCase() + booking.consultant.slice(1),
-                    serviceName,
-                    date: booking.bookingDate,
-                    time: booking.bookingTime,
-                    frequency: booking.frequency,
-                    amount: booking.amount,
-                });
+            // Récupérer les détails de la réservation pour l'email
+            const bookingRepo = AppDataSource.getRepository(Booking);
+            const booking = await bookingRepo.findOne({
+                where: { id: bookingId },
+                relations: ['consultant', 'pricing'],
+            });
 
-                console.log(`Confirmation email sent to ${booking.email}`);
-            } catch (emailError) {
-                console.error('Error sending confirmation email:', emailError);
-                // Ne pas faire échouer le webhook si l'email échoue
+            if (booking) {
+                // Envoyer un email de confirmation au client
+                try {
+                    const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
+                    
+                    await sendCoachingConfirmation({
+                        name: booking.clientName,
+                        email: booking.clientEmail,
+                        consultant: session.metadata?.consultantId || 'Consultant',
+                        serviceName: booking.serviceTitle,
+                        date: booking.bookingDate.toISOString().split('T')[0],
+                        time: booking.bookingTime,
+                        frequency: booking.frequency,
+                        amount: Number(booking.amount),
+                        timezone: booking.timezone,
+                    });
+
+                    console.log(`Confirmation email sent to ${booking.clientEmail}`);
+                } catch (emailError) {
+                    console.error('Error sending confirmation email:', emailError);
+                    // Ne pas faire échouer le webhook si l'email échoue
+                }
             }
+        } catch (error) {
+            console.error('Error handling coaching booking confirmation:', error);
+        }
+    }
+    
+    // Gérer l'ancien système pour la compatibilité
+    const oldBookingId = session.metadata?.booking_id;
+    if (oldBookingId && !isCoachingBooking) {
+        try {
+            const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+            const booking = await CoachingBooking.findOne({ where: { id: parseInt(oldBookingId) } });
+
+            if (booking) {
+                booking.status = 'paid';
+                booking.stripePaymentIntentId = session.payment_intent as string;
+                await booking.save();
+
+                console.log(`Legacy coaching booking ${oldBookingId} marked as paid`);
+            }
+        } catch (error) {
+            console.error('Error handling legacy booking:', error);
         }
     }
 }
@@ -461,8 +506,11 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             service,
             date,
             time,
+            timezone,
             frequency,
             amount,
+            pricingId,
+            serviceDetails,
             success_url,
             cancel_url,
         } = req.body;
@@ -473,7 +521,9 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             service,
             date,
             time,
+            timezone,
             amount,
+            pricingId,
         });
 
         // Validation
@@ -486,7 +536,7 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             });
         }
 
-        if (!consultant || !service || !date || !time || !amount) {
+        if (!consultant || !service || !date || !time || !amount || !timezone) {
             return res.status(422).json({
                 message: 'Validation error',
                 errors: {
@@ -494,65 +544,97 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
                     service: !service ? 'Service type is required' : undefined,
                     date: !date ? 'Booking date is required' : undefined,
                     time: !time ? 'Booking time is required' : undefined,
+                    timezone: !timezone ? 'Timezone is required' : undefined,
                     amount: !amount ? 'Amount is required' : undefined,
                 },
             });
         }
 
-        // Importer l'entité CoachingBooking
-        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+        // Importer le service de booking
+        const { BookingService } = await import('../../graphql/resources/booking/service');
+        const { Booking } = await import('../../database/entities/Booking');
+        const { Wallet } = await import('../../database/entities/Wallet');
+        const { WalletTransaction } = await import('../../database/entities/WalletTransaction');
+        const { Consultant } = await import('../../database/entities/Consultant');
+        const { Pricing } = await import('../../database/entities/Pricing');
+        
+        // Créer une instance du service de booking
+        const AppDataSource = (await import('../../database')).default;
+        const bookingService = new BookingService(
+            AppDataSource.getRepository(Booking),
+            AppDataSource.getRepository(Wallet),
+            AppDataSource.getRepository(WalletTransaction),
+            AppDataSource.getRepository(Consultant),
+            AppDataSource.getRepository(Pricing),
+        );
 
-        // Créer la réservation en base de données
-        const booking = CoachingBooking.create({
-            name: contact.name,
-            email: contact.email,
-            phone: contact.phone,
-            consultant,
-            serviceType: service,
+        // Créer la réservation en base de données avec le nouveau système
+        const booking = await bookingService.createBooking({
+            clientName: contact.name,
+            clientEmail: contact.email,
+            clientPhone: contact.phone,
+            consultantId: consultant,
+            pricingId: pricingId,
+            serviceTitle: service,
+            serviceDescription: serviceDetails?.description,
             bookingDate: date,
             bookingTime: time,
-            frequency: frequency || null,
-            timezone: req.body.timezone || 'Europe/Paris', // Fuseau horaire de l'utilisateur
-            amount,
-            status: 'pending',
+            timezone: timezone,
+            amount: amount / 100, // Convertir de centimes en euros
+            frequency: frequency,
+            metadata: {
+                serviceDetails,
+                originalAmount: amount,
+            },
         });
 
-        await booking.save();
-
-        // Récupérer le price ID correspondant au service
-        const priceId = service === 'bilan' 
-            ? stripeConfig.coachingPriceIds.bilan 
-            : stripeConfig.coachingPriceIds.accompagnement;
-
-        console.log(`Using Stripe Price ID: ${priceId} for service: ${service}`);
-
-        // Créer la session de checkout Stripe avec le price ID
+        // Créer la session de checkout Stripe avec un prix dynamique
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             line_items: [
                 {
-                    price: priceId,
+                    price_data: {
+                        currency: 'eur',
+                        product_data: {
+                            name: service,
+                            description: `Réservation avec ${consultant}\nDate: ${new Date(date).toLocaleDateString('fr-FR')}\nHeure: ${time} (${timezone})${serviceDetails?.duration ? `\nDurée: ${serviceDetails.duration}` : ''}${frequency ? `\nFréquence: ${frequency}` : ''}`,
+                            metadata: {
+                                consultant: consultant,
+                                bookingId: booking.id,
+                                date: date,
+                                time: time,
+                                timezone: timezone,
+                            },
+                        },
+                        unit_amount: amount,
+                    },
                     quantity: 1,
                 },
             ],
             customer_email: contact.email,
-            success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
             cancel_url: cancel_url,
             metadata: {
-                booking_id: booking.id.toString(),
-                consultant,
-                service,
-                date,
-                time,
-                customer_name: contact.name,
-                customer_email: contact.email,
-                customer_phone: contact.phone,
+                type: 'coaching',
+                bookingId: booking.id,
+                consultantId: consultant,
+                clientName: contact.name,
+                clientPhone: contact.phone,
+                bookingDate: date,
+                bookingTime: time,
+                timezone: timezone,
+            },
+            payment_intent_data: {
+                metadata: {
+                    bookingId: booking.id,
+                    consultantId: consultant,
+                },
             },
         });
 
-        // Mettre à jour la réservation avec l'ID de session
-        booking.stripeSessionId = session.id;
-        await booking.save();
+        // Mettre à jour la réservation avec l'ID de session Stripe
+        const bookingRepo = AppDataSource.getRepository(Booking);
+        await bookingRepo.update(booking.id, { stripeSessionId: session.id });
 
         console.log('Coaching checkout session created:', {
             sessionId: session.id,

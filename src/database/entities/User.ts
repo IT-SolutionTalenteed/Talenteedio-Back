@@ -83,6 +83,9 @@ export class User extends BaseEntity {
     @Column({ type: 'varchar', nullable: true })
     subscriptionStatus: 'active' | 'canceled' | 'past_due' | 'trialing' | null;
 
+    @Column({ type: 'varchar', nullable: true })
+    googleId: string | null;
+
     async checkPasswd(passwd: string): Promise<boolean> {
         return await bcrypt.compare(passwd, this.password);
     }

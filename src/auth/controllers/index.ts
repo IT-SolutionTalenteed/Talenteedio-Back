@@ -18,6 +18,7 @@ dotenv.config();
 declare module 'express-session' {
     export interface SessionData {
         userAttempt: number;
+        lastAttemptTime: number;
         user: User;
         accessToken: string;
         refreshToken: string;
@@ -66,17 +67,21 @@ const generateAccessToken = (req: Request, res: Response, user: User, withRefres
 };
 
 export const loginMiddleware = async (req: Request, res: Response, cb: (user: User, withRefreshToken: boolean) => void) => {
-    req.session.userAttempt = typeof req.session.userAttempt !== 'number' ? 0 : req.session.userAttempt;
-
-    if (req.session.userAttempt > 3) {
-        res.status(400).json({ msg: 'The 3 attempts have expired, please wait a few minutes!' });
-        return;
+    const now = Date.now();
+    const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes en millisecondes
+    
+    // Réinitialiser le compteur si plus de 5 minutes se sont écoulées depuis la dernière tentative
+    if (req.session.lastAttemptTime && (now - req.session.lastAttemptTime) > LOCKOUT_DURATION) {
+        req.session.userAttempt = 0;
+        req.session.lastAttemptTime = undefined;
     }
+    
+    req.session.userAttempt = typeof req.session.userAttempt !== 'number' ? 0 : req.session.userAttempt;
 
     try {
         const { password, email, rememberMe } = {
             email: req.body.email ? ent.encode(req.body.email) : '',
-            password: req.body.password ? ent.encode(req.body.password) : '',
+            password: req.body.password || '',
             rememberMe: req.body.rememberMe && ['true', 'false', true, false].includes(req.body.rememberMe) ? JSON.parse(req.body.rememberMe) : false,
         };
 
@@ -105,14 +110,31 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
             const isMatch = await userWithPassword?.checkPasswd(password);
 
             if (isMatch) {
+                // Réinitialiser le compteur en cas de connexion réussie
+                req.session.userAttempt = 0;
+                req.session.lastAttemptTime = undefined;
                 cb(user, rememberMe);
             } else {
                 req.session.userAttempt++;
-                res.status(401).json({ msg: 'Authentification failed!' });
+                req.session.lastAttemptTime = Date.now();
+                
+                // Bloquer après 3 tentatives échouées
+                if (req.session.userAttempt >= 3) {
+                    res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
+                } else {
+                    res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
+                }
             }
         } else {
             req.session.userAttempt++;
-            res.status(401).json({ msg: 'Authentification failed!' });
+            req.session.lastAttemptTime = Date.now();
+            
+            // Bloquer après 3 tentatives échouées
+            if (req.session.userAttempt >= 3) {
+                res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
+            } else {
+                res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
+            }
         }
     } catch (error) {
         res.status(500).json({ msg: 'Internal error!' });
@@ -167,13 +189,6 @@ export const refreshToken = async (req: Request, res: Response) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-    req.session.userAttempt = typeof req.session.userAttempt !== 'number' ? 0 : req.session.userAttempt;
-
-    if (req.session.userAttempt > 3) {
-        res.status(400).json({ msg: 'The 3 attempts have expired, please wait a few minutes!' });
-        return;
-    }
-
     const queryRunner = AppDataSource.createQueryRunner();
 
     await queryRunner.startTransaction();
@@ -184,8 +199,8 @@ export const register = async (req: Request, res: Response) => {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
             email: req.body.email ? ent.encode(req.body.email) : null,
-            confirmationPassword: req.body.confirmationPassword ? ent.encode(req.body.confirmationPassword) : null,
-            password: req.body.password ? ent.encode(req.body.password) : null,
+            confirmationPassword: req.body.confirmationPassword || null,
+            password: req.body.password || null,
             role: req.body.role ? (ent.encode(req.body.role) as RoleRegitration) : null,
             phone: req.body.phone ? ent.encode(req.body.phone) : null,
             values: req.body.values ? req.body.values : [],
@@ -702,9 +717,9 @@ export const resetPassword = async (req: Request, res: Response) => {
 export const changePassword = async (req: Request, res: Response) => {
     try {
         const { newPassword, password, confirmationPassword } = {
-            password: req.body.password ? ent.encode(req.body.password) : null,
-            confirmationPassword: req.body.confirmationPassword ? ent.encode(req.body.confirmationPassword) : null,
-            newPassword: req.body.newPassword ? ent.encode(req.body.newPassword) : null,
+            password: req.body.password || null,
+            confirmationPassword: req.body.confirmationPassword || null,
+            newPassword: req.body.newPassword || null,
         };
 
         // Error handling
@@ -799,3 +814,149 @@ export const me = async (req: Request, res: Response) => {
         res.status(404).json({ error: 'User not found' });
     }
 };
+
+export const googleAuth = async (req: Request, res: Response) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            res.status(400).json({ msg: 'Google credential required!' });
+            return;
+        }
+
+        // Décoder le JWT Google
+        const payload = decodeGoogleJWT(credential);
+        if (!payload) {
+            res.status(400).json({ msg: 'Invalid Google credential!' });
+            return;
+        }
+
+        const { email, name, given_name, family_name, picture, sub: googleId } = payload;
+
+        if (!email) {
+            res.status(400).json({ msg: 'Email not provided by Google!' });
+            return;
+        }
+
+        // Chercher un utilisateur existant avec cet email
+        let user = await User.findOne({ 
+            where: { email }, 
+            relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture'] 
+        });
+
+        if (user) {
+            // Utilisateur existant - mettre à jour les informations Google si nécessaire
+            if (!user.googleId) {
+                user.googleId = googleId;
+                await user.save();
+            }
+        } else {
+            // Nouvel utilisateur - créer un compte
+            user = new User();
+            user.email = email;
+            user.firstname = given_name || name?.split(' ')[0] || 'Utilisateur';
+            user.lastname = family_name || name?.split(' ').slice(1).join(' ') || 'Google';
+            user.googleId = googleId;
+            user.validateAt = new Date(); // Compte Google automatiquement validé
+            
+            // Pas de mot de passe pour les comptes Google
+            user.setPasswd(generateRandomPassword());
+            
+            await user.save();
+        }
+
+        // Réinitialiser le compteur de tentatives
+        req.session.userAttempt = 0;
+        req.session.lastAttemptTime = undefined;
+
+        // Générer les tokens
+        generateAccessToken(req, res, user, true);
+
+    } catch (error) {
+        console.error('Google auth error:', error);
+        res.status(500).json({ msg: 'Internal error during Google authentication!' });
+    }
+};
+
+export const linkGoogleAccount = async (req: Request, res: Response) => {
+    try {
+        if (!req.session.user) {
+            res.status(401).json({ msg: 'Not authenticated!' });
+            return;
+        }
+
+        const { credential } = req.body;
+
+        if (!credential) {
+            res.status(400).json({ msg: 'Google credential required!' });
+            return;
+        }
+
+        // Décoder le JWT Google
+        const payload = decodeGoogleJWT(credential);
+        if (!payload) {
+            res.status(400).json({ msg: 'Invalid Google credential!' });
+            return;
+        }
+
+        const { email, sub: googleId } = payload;
+
+        // Vérifier que l'email correspond à l'utilisateur connecté
+        if (email !== req.session.user.email) {
+            res.status(400).json({ msg: 'Google account email does not match your account email!' });
+            return;
+        }
+
+        // Vérifier qu'aucun autre compte n'utilise déjà ce Google ID
+        const existingUser = await User.findOne({ where: { googleId } });
+        if (existingUser && existingUser.id !== req.session.user.id) {
+            res.status(400).json({ msg: 'This Google account is already linked to another user!' });
+            return;
+        }
+
+        // Lier le compte Google
+        const user = await User.findOne({ where: { id: req.session.user.id } });
+        if (user) {
+            user.googleId = googleId;
+            await user.save();
+            
+            res.status(200).json({ success: true, msg: 'Google account linked successfully!' });
+        } else {
+            res.status(404).json({ msg: 'User not found!' });
+        }
+
+    } catch (error) {
+        console.error('Link Google account error:', error);
+        res.status(500).json({ msg: 'Internal error during Google account linking!' });
+    }
+};
+
+// Fonction utilitaire pour décoder le JWT Google
+function decodeGoogleJWT(token: string): any {
+    try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+            Buffer.from(base64, 'base64')
+                .toString()
+                .split('')
+                .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+        );
+        return JSON.parse(jsonPayload);
+    } catch (error) {
+        console.error('Error decoding Google JWT:', error);
+        return null;
+    }
+}
+
+// Fonction utilitaire pour générer un mot de passe aléatoire
+function generateRandomPassword(): string {
+    return generatePassword.generate({
+        length: 16,
+        numbers: true,
+        symbols: true,
+        uppercase: true,
+        lowercase: true,
+    });
+}

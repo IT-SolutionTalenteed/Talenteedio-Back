@@ -18,6 +18,12 @@ export class Pricing extends BaseEntity {
     @Column({ nullable: true })
     unit: string; // 'hour', 'day', 'project', etc.
 
+    @Column({ nullable: true })
+    duration: string; // '2 heures', '1 mois', etc.
+
+    @Column('json', { nullable: true })
+    features: string[]; // Liste des prestations incluses
+
     @ManyToOne(() => Consultant, (consultant) => consultant.pricings, {
         onDelete: 'CASCADE',
     })

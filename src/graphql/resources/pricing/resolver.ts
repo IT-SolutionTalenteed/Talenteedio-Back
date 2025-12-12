@@ -14,6 +14,13 @@ export const pricingResolvers = {
     getOnePricing: async (_: any, { id }: any) => {
       return await Pricing.findOne({ where: { id }, relations: ['consultant'] });
     },
+
+    getAllPricings: async () => {
+      return await Pricing.find({
+        relations: ['consultant', 'consultant.user'],
+        order: { createdAt: 'DESC' },
+      });
+    },
   },
 
   Mutation: {
@@ -35,6 +42,8 @@ export const pricingResolvers = {
         description: input.description,
         price: input.price,
         unit: input.unit,
+        duration: input.duration,
+        features: input.features || [],
         consultant,
       });
 
@@ -62,6 +71,8 @@ export const pricingResolvers = {
       if (input.description !== undefined) pricing.description = input.description;
       if (input.price !== undefined) pricing.price = input.price;
       if (input.unit !== undefined) pricing.unit = input.unit;
+      if (input.duration !== undefined) pricing.duration = input.duration;
+      if (input.features !== undefined) pricing.features = input.features;
 
       return await pricing.save();
     },

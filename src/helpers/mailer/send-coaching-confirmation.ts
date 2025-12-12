@@ -7,6 +7,7 @@ interface CoachingConfirmationData {
   serviceName: string;
   date: string;
   time: string;
+  timezone?: string;
   frequency?: string;
   amount: number;
 }
@@ -29,8 +30,9 @@ export const sendCoachingConfirmation = async (data: CoachingConfirmationData) =
           day: 'numeric',
         }),
         time: data.time,
+        timezone: data.timezone || 'Europe/Paris',
         frequency: data.frequency === 'weekly' ? 'Hebdomadaire' : data.frequency === 'biweekly' ? 'Toutes les 2 semaines' : null,
-        amount: (data.amount / 100).toFixed(2),
+        amount: typeof data.amount === 'number' ? data.amount.toFixed(2) : (data.amount / 100).toFixed(2),
         year: new Date().getFullYear(),
       },
     };
