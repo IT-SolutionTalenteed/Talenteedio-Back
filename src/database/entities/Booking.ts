@@ -13,7 +13,9 @@ import { Pricing } from './Pricing';
 
 export enum BookingStatus {
   PENDING = 'pending',
+  AWAITING_VALIDATION = 'awaiting_validation',
   CONFIRMED = 'confirmed',
+  REJECTED = 'rejected',
   CANCELLED = 'cancelled',
   COMPLETED = 'completed',
 }

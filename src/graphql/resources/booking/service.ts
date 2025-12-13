@@ -102,17 +102,79 @@ export class BookingService {
       throw new Error('Réservation non trouvée');
     }
 
-    // Mettre à jour le statut de la réservation
-    booking.status = BookingStatus.CONFIRMED;
+    // Mettre à jour le statut de la réservation - en attente de validation du consultant
+    booking.status = BookingStatus.AWAITING_VALIDATION;
     booking.paymentStatus = PaymentStatus.PAID;
     booking.stripePaymentIntentId = stripePaymentIntentId;
 
     const updatedBooking = await this.bookingRepository.save(booking);
 
-    // Confirmer la transaction dans le portefeuille
+    // Confirmer la transaction dans le portefeuille (l'argent est déjà reçu)
     await this.confirmWalletTransaction(booking);
 
     return updatedBooking;
+  }
+
+  async validateBooking(
+    bookingId: string,
+    action: 'confirm' | 'reject',
+    consultantMessage?: string,
+  ): Promise<Booking> {
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+      relations: ['consultant'],
+    });
+
+    if (!booking) {
+      throw new Error('Réservation non trouvée');
+    }
+
+    if (booking.status !== BookingStatus.AWAITING_VALIDATION) {
+      throw new Error('Cette réservation ne peut plus être validée');
+    }
+
+    if (action === 'confirm') {
+      booking.status = BookingStatus.CONFIRMED;
+      booking.notes = consultantMessage || 'Réservation confirmée par le consultant';
+    } else {
+      booking.status = BookingStatus.REJECTED;
+      booking.notes = consultantMessage || 'Réservation refusée par le consultant';
+      
+      // Si rejetée, rembourser le client (annuler la transaction wallet)
+      await this.refundBooking(booking);
+    }
+
+    const updatedBooking = await this.bookingRepository.save(booking);
+    return updatedBooking;
+  }
+
+  private async refundBooking(booking: Booking): Promise<void> {
+    const wallet = await this.walletRepository.findOne({
+      where: { consultantId: booking.consultantId },
+    });
+
+    if (!wallet) return;
+
+    const amount = Number(booking.amount);
+
+    // Débiter le solde du consultant
+    wallet.balance = Number(wallet.balance) - amount;
+    wallet.totalEarnings = Number(wallet.totalEarnings) - amount;
+
+    await this.walletRepository.save(wallet);
+
+    // Créer une transaction de remboursement
+    const transaction = this.walletTransactionRepository.create({
+      walletId: wallet.id,
+      bookingId: booking.id,
+      type: TransactionType.DEBIT,
+      source: TransactionSource.REFUND,
+      amount: -amount,
+      balanceAfter: wallet.balance,
+      description: `Remboursement - ${booking.serviceTitle} (réservation rejetée)`,
+    });
+
+    await this.walletTransactionRepository.save(transaction);
   }
 
   private async createPendingWalletTransaction(booking: Booking): Promise<void> {

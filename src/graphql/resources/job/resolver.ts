@@ -170,20 +170,20 @@ const resolver = {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const filters: any = { where: {} };
 
-                const user = context.req.session.user as User;
+                const user = context.req.session?.user as User;
 
-                if (args.filter?.status && (!user.company || (args.filter?.status !== 'in_review' && args.filter?.status !== 'denied'))) {
+                if (args.filter?.status && (!user?.company || (args.filter?.status !== 'in_review' && args.filter?.status !== 'denied'))) {
                     filters.where.status = args.filter.status;
-                } else if (user.company || user.admin) {
+                } else if (user?.company || user?.admin) {
                     filters.where.status = Not(In(['in_review', 'denied']));
                 }
 
-                if (user.talent) {
+                if (user?.talent) {
                     filters.where.talent = { id: user.talent.id };
-                } else if (user.referral) {
+                } else if (user?.referral) {
                     filters.where.referral = { id: user.referral.id };
                 } else {
-                    if (user.company) {
+                    if (user?.company) {
                         if (args.filter?.jobId) {
                             const job = await Job.findOne({ where: { id: args.filter?.jobId, company: { id: user.company.id } } });
 

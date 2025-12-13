@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { changePassword, login, loginAdmin, logout, logoutAll, me, register, resetPassword, verifyEmail, refreshToken, googleAuth, linkGoogleAccount } from './controllers';
+import { changePassword, login, loginAdmin, logout, logoutAll, me, register, resetPassword, verifyEmail, refreshToken, googleAuth, linkGoogleAccount, unlinkGoogleAccount } from './controllers';
 
 import auth from './middlewares/auth-guard';
 import recaptcha from './middlewares/recaptcha-guard';
@@ -24,6 +24,7 @@ authRouter
     .post('/change-password', auth, changePassword)
     .post('/logout', auth, logout)
     .post('/logout-all', auth, logoutAll)
-    .post('/auth/link-google', auth, linkGoogleAccount);
+    .post('/auth/link-google', auth, linkGoogleAccount)
+    .post('/auth/unlink-google', auth, unlinkGoogleAccount);
 
 export default authRouter;

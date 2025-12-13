@@ -931,6 +931,30 @@ export const linkGoogleAccount = async (req: Request, res: Response) => {
     }
 };
 
+export const unlinkGoogleAccount = async (req: Request, res: Response) => {
+    try {
+        if (!req.session.user) {
+            res.status(401).json({ msg: 'Not authenticated!' });
+            return;
+        }
+
+        // Délier le compte Google
+        const user = await User.findOne({ where: { id: req.session.user.id } });
+        if (user) {
+            user.googleId = null;
+            await user.save();
+            
+            res.status(200).json({ success: true, msg: 'Google account unlinked successfully!' });
+        } else {
+            res.status(404).json({ msg: 'User not found!' });
+        }
+
+    } catch (error) {
+        console.error('Unlink Google account error:', error);
+        res.status(500).json({ msg: 'Internal error during Google account unlinking!' });
+    }
+};
+
 // Fonction utilitaire pour décoder le JWT Google
 function decodeGoogleJWT(token: string): any {
     try {

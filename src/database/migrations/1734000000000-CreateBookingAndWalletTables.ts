@@ -152,7 +152,7 @@ export class CreateBookingAndWalletTables1734000000000 implements MigrationInter
                     {
                         name: 'status',
                         type: 'enum',
-                        enum: ['pending', 'confirmed', 'cancelled', 'completed'],
+                        enum: ['pending', 'awaiting_validation', 'confirmed', 'rejected', 'cancelled', 'completed'],
                         default: "'pending'",
                     },
                     {

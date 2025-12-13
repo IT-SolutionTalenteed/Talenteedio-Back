@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { listPlans, createCheckoutSession, createPortalSession, handleWebhook, createCoachingCheckoutSession } from './controllers';
+import { listPlans, createCheckoutSession, createPortalSession, handleWebhook, createCoachingCheckoutSession, confirmCoachingPayment, simulateStripeWebhook } from './controllers';
 import auth from '../auth/middlewares/auth-guard';
 
 const router = Router();
@@ -18,5 +18,11 @@ router.post('/billing/coaching-checkout', createCoachingCheckoutSession);
 // Route webhook Stripe (doit utiliser express.raw pour vérifier la signature)
 // Note: Cette route doit être enregistrée AVANT express.json() dans index.ts
 router.post('/stripe/webhook', handleWebhook);
+
+// Route pour déclencher manuellement l'envoi d'emails après paiement (avec vérification Stripe)
+router.post('/coaching/confirm-payment/:bookingId', confirmCoachingPayment);
+
+// Route pour simuler un webhook Stripe avec vérification du paiement
+router.post('/stripe/simulate-webhook/:sessionId', simulateStripeWebhook);
 
 export default router;
