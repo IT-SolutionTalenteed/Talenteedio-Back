@@ -41,6 +41,9 @@ export class BookingService {
       throw new Error('Consultant non trouvé');
     }
 
+    // Vérifier la disponibilité du créneau
+    await this.checkAvailability(input.consultantId, input.bookingDate, input.bookingTime);
+
     // Vérifier le pricing si fourni
     let pricing: Pricing | undefined;
     if (input.pricingId) {
@@ -319,5 +322,35 @@ export class BookingService {
     });
 
     await this.walletTransactionRepository.save(transaction);
+  }
+
+  private async checkAvailability(consultantId: string, date: string, time: string): Promise<void> {
+    // Importer les entités nécessaires
+    const AppDataSource = (await import('../../../database')).default;
+    const { BlockedDate } = await import('../../../database/entities/BlockedDate');
+    
+    // Vérifier si la date est bloquée
+    const blockedDateRepo = AppDataSource.getRepository(BlockedDate);
+    const isBlocked = await blockedDateRepo.findOne({
+      where: { consultantId, date },
+    });
+
+    if (isBlocked) {
+      throw new Error('Cette date n\'est pas disponible');
+    }
+
+    // Vérifier si le créneau est déjà réservé
+    const existingBooking = await this.bookingRepository.findOne({
+      where: { 
+        consultantId, 
+        bookingDate: new Date(date), 
+        bookingTime: time,
+        status: BookingStatus.CONFIRMED
+      },
+    });
+
+    if (existingBooking) {
+      throw new Error('Ce créneau horaire est déjà réservé');
+    }
   }
 }

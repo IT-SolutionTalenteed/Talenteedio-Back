@@ -14,6 +14,8 @@ import authRouter from './auth';
 import billingRouter from './billing';
 import bookingValidationRouter from './routes/booking-validation.routes';
 import walletRouter from './routes/wallet.routes';
+import creneauxRouter from './routes/creneaux.routes';
+import publicRouter from './routes/public.routes';
 
 import { initSentry } from './sentry';
 
@@ -91,6 +93,12 @@ const serve = async () => {
 
         // Wallet routes (monté sur /api/wallet pour éviter que le middleware auth intercepte les autres routes /api/*)
         app.use('/api/wallet', walletRouter);
+
+        // Creneaux routes
+        app.use('/api/creneaux', creneauxRouter);
+
+        // Public routes (sans authentification)
+        app.use('/api/public', publicRouter);
 
         // GraphQL routes
         app.use('/api', graphQLRouter);

@@ -839,38 +839,46 @@ export const googleAuth = async (req: Request, res: Response) => {
         }
 
         // Chercher un utilisateur existant avec cet email
-        let user = await User.findOne({ 
+        const user = await User.findOne({ 
             where: { email }, 
             relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture'] 
         });
 
         if (user) {
+            // Vérifier si c'est un consultant non validé
+            if (user.consultant && !user.isVerified) {
+                res.status(403).json({ 
+                    msg: 'Votre compte consultant est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
+                    pending: true 
+                });
+                return;
+            }
+
             // Utilisateur existant - mettre à jour les informations Google si nécessaire
             if (!user.googleId) {
                 user.googleId = googleId;
                 await user.save();
             }
+
+            // Réinitialiser le compteur de tentatives
+            req.session.userAttempt = 0;
+            req.session.lastAttemptTime = undefined;
+
+            // Générer les tokens
+            generateAccessToken(req, res, user, true);
         } else {
-            // Nouvel utilisateur - créer un compte
-            user = new User();
-            user.email = email;
-            user.firstname = given_name || name?.split(' ')[0] || 'Utilisateur';
-            user.lastname = family_name || name?.split(' ').slice(1).join(' ') || 'Google';
-            user.googleId = googleId;
-            user.validateAt = new Date(); // Compte Google automatiquement validé
-            
-            // Pas de mot de passe pour les comptes Google
-            user.setPasswd(generateRandomPassword());
-            
-            await user.save();
+            // Aucun compte trouvé avec cet email
+            res.status(401).json({ 
+                msg: 'Aucun compte trouvé avec cet email. Veuillez vous inscrire d\'abord.',
+                needsRegistration: true,
+                googleData: {
+                    email,
+                    firstname: given_name || name?.split(' ')[0] || '',
+                    lastname: family_name || name?.split(' ').slice(1).join(' ') || '',
+                    googleId
+                }
+            });
         }
-
-        // Réinitialiser le compteur de tentatives
-        req.session.userAttempt = 0;
-        req.session.lastAttemptTime = undefined;
-
-        // Générer les tokens
-        generateAccessToken(req, res, user, true);
 
     } catch (error) {
         console.error('Google auth error:', error);
@@ -952,6 +960,146 @@ export const unlinkGoogleAccount = async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Unlink Google account error:', error);
         res.status(500).json({ msg: 'Internal error during Google account unlinking!' });
+    }
+};
+
+export const googleRegister = async (req: Request, res: Response) => {
+    try {
+        const { credential, role, additionalData } = req.body;
+
+        if (!credential || !role) {
+            res.status(400).json({ msg: 'Google credential and role are required!' });
+            return;
+        }
+
+        // Décoder le JWT Google
+        const payload = decodeGoogleJWT(credential);
+        if (!payload) {
+            res.status(400).json({ msg: 'Invalid Google credential!' });
+            return;
+        }
+
+        const { email, name, given_name, family_name, picture, sub: googleId } = payload;
+
+        if (!email) {
+            res.status(400).json({ msg: 'Email not provided by Google!' });
+            return;
+        }
+
+        // Vérifier si un utilisateur existe déjà avec cet email
+        const existingUser = await User.findOne({ where: { email } });
+        if (existingUser) {
+            res.status(400).json({ msg: 'Un compte existe déjà avec cet email. Veuillez vous connecter.' });
+            return;
+        }
+
+        // Créer un nouvel utilisateur avec les données Google
+        const newUser = new User();
+        newUser.email = email;
+        newUser.firstname = given_name || name?.split(' ')[0] || 'Utilisateur';
+        newUser.lastname = family_name || name?.split(' ').slice(1).join(' ') || 'Google';
+        newUser.googleId = googleId;
+        newUser.validateAt = new Date(); // Compte Google automatiquement validé
+        
+        // Générer un mot de passe aléatoire (non utilisé pour les comptes Google)
+        newUser.setPasswd(generateRandomPassword());
+
+        // Traiter selon le rôle sélectionné
+        if (role === 'talent' || role === 'freelance') {
+            // Pour les talents/freelances, on a besoin de données supplémentaires
+            if (!additionalData?.values || !additionalData?.phone) {
+                res.status(400).json({ msg: 'Données supplémentaires requises pour ce type de compte.' });
+                return;
+            }
+
+            if (role === 'talent') {
+                newUser.talent = new Talent();
+                newUser.talent.values = [];
+                for (const valueId of additionalData.values) {
+                    const value = await Value.findOneBy({ id: valueId });
+                    if (value) newUser.talent.values.push(value);
+                }
+                newUser.talent.contact = new Contact();
+                newUser.talent.contact.phoneNumber = additionalData.phone;
+            } else {
+                newUser.freelance = new Freelance();
+                newUser.freelance.values = [];
+                for (const valueId of additionalData.values) {
+                    const value = await Value.findOneBy({ id: valueId });
+                    if (value) newUser.freelance.values.push(value);
+                }
+                newUser.freelance.contact = new Contact();
+                newUser.freelance.contact.phoneNumber = additionalData.phone;
+            }
+        } else if (role === 'company') {
+            if (!additionalData?.company_name || !additionalData?.phone) {
+                res.status(400).json({ msg: 'Nom de l\'entreprise et téléphone requis.' });
+                return;
+            }
+
+            newUser.company = new Company();
+            newUser.company.company_name = additionalData.company_name;
+            newUser.company.contact = new Contact();
+            newUser.company.contact.phoneNumber = additionalData.phone;
+
+            // Assigner le package par défaut
+            const defaultPermission = await Permission.findOne({ where: { title: 'Initial Package' } });
+            if (defaultPermission) {
+                newUser.company.permission = defaultPermission;
+            }
+        } else if (role === 'consultant') {
+            if (!additionalData?.phone) {
+                res.status(400).json({ msg: 'Téléphone requis pour les consultants.' });
+                return;
+            }
+
+            newUser.consultant = new Consultant();
+            newUser.consultant.contact = new Contact();
+            newUser.consultant.contact.phoneNumber = additionalData.phone;
+            
+            // Les consultants doivent être validés
+            newUser.isVerified = false;
+        } else {
+            res.status(400).json({ msg: 'Rôle non valide.' });
+            return;
+        }
+
+        // Sauvegarder l'utilisateur
+        await newUser.save();
+
+        // Sauvegarder les entités liées
+        if (newUser.talent) {
+            await newUser.talent.contact.save();
+            newUser.talent.user = newUser;
+            await newUser.talent.save();
+        } else if (newUser.freelance) {
+            await newUser.freelance.contact.save();
+            newUser.freelance.user = newUser;
+            await newUser.freelance.save();
+        } else if (newUser.company) {
+            await newUser.company.contact.save();
+            newUser.company.user = newUser;
+            await newUser.company.save();
+        } else if (newUser.consultant) {
+            await newUser.consultant.contact.save();
+            newUser.consultant.user = newUser;
+            await newUser.consultant.save();
+        }
+
+        // Envoyer email de bienvenue ou de validation selon le rôle
+        if (role === 'consultant') {
+            res.status(200).json({ 
+                msg: 'Inscription réussie. Votre compte consultant est en attente de validation.',
+                pending: true 
+            });
+        } else {
+            // Générer les tokens pour les autres rôles
+            generateAccessToken(req, res, newUser, true);
+        }
+
+    } catch (error) {
+        console.error('Google register error:', error);
+        res.status(500).json({ msg: 'Internal error during Google registration!' });
     }
 };
 
