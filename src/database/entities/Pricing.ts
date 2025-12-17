@@ -24,6 +24,9 @@ export class Pricing extends BaseEntity {
     @Column('json', { nullable: true })
     features: string[]; // Liste des prestations incluses
 
+    @Column({ nullable: true })
+    meetingLink: string; // Lien de réunion envoyé par email après paiement
+
     @ManyToOne(() => Consultant, (consultant) => consultant.pricings, {
         onDelete: 'CASCADE',
     })

@@ -44,6 +44,7 @@ export const pricingResolvers = {
         unit: input.unit,
         duration: input.duration,
         features: input.features || [],
+        meetingLink: input.meetingLink,
         consultant,
       });
 
@@ -73,6 +74,7 @@ export const pricingResolvers = {
       if (input.unit !== undefined) pricing.unit = input.unit;
       if (input.duration !== undefined) pricing.duration = input.duration;
       if (input.features !== undefined) pricing.features = input.features;
+      if (input.meetingLink !== undefined) pricing.meetingLink = input.meetingLink;
 
       return await pricing.save();
     },

@@ -1,15 +1,15 @@
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
   <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">Paiement Confirmé ✓</h1>
+    <h1 style="color: white; margin: 0; font-size: 28px;">Réservation Confirmée ✓</h1>
   </div>
   
   <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      Bonjour <strong>{{name}}</strong>,
+      Bonjour <strong>{{clientName}}</strong>,
     </p>
     
     <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      Votre paiement pour le service <strong>{{serviceName}}</strong> a été reçu avec succès !
+      Excellente nouvelle ! Votre réservation pour le service <strong>{{serviceName}}</strong> a été confirmée par le consultant.
     </p>
     
     <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
@@ -17,23 +17,13 @@
       
       <table style="width: 100%; border-collapse: collapse;">
         <tr>
-          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Consultant :</td>
-          <td style="padding: 10px 0; color: #2c3e50;">{{consultant}}</td>
-        </tr>
-        <tr>
           <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Date :</td>
           <td style="padding: 10px 0; color: #2c3e50;">{{date}}</td>
         </tr>
         <tr>
           <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Heure :</td>
-          <td style="padding: 10px 0; color: #2c3e50;">{{time}}</td>
+          <td style="padding: 10px 0; color: #2c3e50;">{{time}} ({{timezone}})</td>
         </tr>
-        {{#if frequency}}
-        <tr>
-          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Fréquence :</td>
-          <td style="padding: 10px 0; color: #2c3e50;">{{frequency}}</td>
-        </tr>
-        {{/if}}
         <tr>
           <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Montant payé :</td>
           <td style="padding: 10px 0; color: #5cb85c; font-weight: bold;">{{amount}}€</td>
@@ -41,21 +31,27 @@
       </table>
     </div>
 
-    <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-      <h3 style="color: #856404; font-size: 18px; margin-top: 0;">⏳ En attente de validation</h3>
-      <p style="color: #856404; margin: 0;">
-        Votre réservation est en attente de validation par le consultant. Vous recevrez un email de confirmation avec le lien de la session dès que le consultant aura validé votre réservation.
+    {{#if meetingLink}}
+    <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+      <h3 style="color: #155724; font-size: 18px; margin-top: 0;">🔗 Lien de votre session</h3>
+      <p style="color: #155724; margin-bottom: 15px;">
+        Cliquez sur le bouton ci-dessous pour rejoindre votre session le jour J :
+      </p>
+      <a href="{{meetingLink}}" style="display: inline-block; background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        Rejoindre la session
+      </a>
+      <p style="color: #5a6c7d; font-size: 12px; margin-top: 15px; word-break: break-all;">
+        Ou copiez ce lien : {{meetingLink}}
       </p>
     </div>
+    {{/if}}
 
-    <div style="background-color: #e8f4f8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-      <h3 style="color: #2c3e50; font-size: 18px; margin-top: 0;">Prochaines étapes</h3>
-      <ul style="color: #5a6c7d; line-height: 1.8;">
-        <li>Le consultant va valider votre réservation</li>
-        <li>Vous recevrez un email avec le lien de visioconférence</li>
-        <li>Préparez vos questions et objectifs pour la session</li>
-      </ul>
+    {{#if consultantMessage}}
+    <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+      <h3 style="color: #856404; font-size: 16px; margin-top: 0;">Message du consultant</h3>
+      <p style="color: #856404;">{{consultantMessage}}</p>
     </div>
+    {{/if}}
     
     <p style="font-size: 14px; color: #5a6c7d; margin-top: 30px;">
       Si vous avez des questions, n'hésitez pas à nous contacter.

@@ -1,64 +1,73 @@
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-    <h2 style="color: #2c3e50; text-align: center;">Nouvelle réservation à valider</h2>
-    
-    <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-        <h3 style="color: #2c3e50; margin-top: 0;">Détails de la réservation</h3>
-        <table style="width: 100%; border-collapse: collapse;">
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Client :</td>
-                <td style="padding: 8px 0; color: #5a6c7d;">{{clientName}}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Email :</td>
-                <td style="padding: 8px 0; color: #5a6c7d;">{{clientEmail}}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Service :</td>
-                <td style="padding: 8px 0; color: #5a6c7d;">{{serviceName}}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Date :</td>
-                <td style="padding: 8px 0; color: #5a6c7d;">{{date}}</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Heure :</td>
-                <td style="padding: 8px 0; color: #5a6c7d;">{{time}} ({{timezone}})</td>
-            </tr>
-            <tr>
-                <td style="padding: 8px 0; font-weight: bold; color: #2c3e50;">Montant :</td>
-                <td style="padding: 8px 0; color: #5a6c7d; font-weight: bold;">{{amount}}€</td>
-            </tr>
-        </table>
+    <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+        <h1 style="color: white; margin: 0; font-size: 24px;">Nouvelle réservation</h1>
     </div>
     
-    <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0; color: #2d5a2d; font-weight: bold;">
-            ✅ Le paiement a été effectué et crédité sur votre portefeuille.
+    <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+            Bonjour <strong>{{consultant}}</strong>,
         </p>
-    </div>
-    
-    <div style="text-align: center; margin: 30px 0;">
-        <a href="{{confirmUrl}}" 
-           style="background: #10b981; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 0 10px; display: inline-block; font-weight: bold;">
-            ✅ Confirmer la réservation
-        </a>
         
-        <a href="{{rejectUrl}}" 
-           style="background: #ef4444; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; margin: 0 10px; display: inline-block; font-weight: bold;">
-            ❌ Refuser la réservation
-        </a>
-    </div>
-    
-    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0;">
-        <p style="margin: 0; color: #856404; font-size: 14px;">
-            <strong>Important :</strong> Veuillez valider cette réservation dans les plus brefs délais. 
-            Le client a déjà payé et attend votre confirmation.
+        <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
+            Vous avez reçu une nouvelle réservation pour le service <strong>{{serviceName}}</strong>.
+        </p>
+        
+        <div style="background: #fff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
+            <h3 style="color: #2c3e50; margin-top: 0;">Détails de la réservation</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Client :</td>
+                    <td style="padding: 10px 0; color: #2c3e50;">{{clientName}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Email :</td>
+                    <td style="padding: 10px 0; color: #2c3e50;">{{clientEmail}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Service :</td>
+                    <td style="padding: 10px 0; color: #2c3e50;">{{serviceName}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Date :</td>
+                    <td style="padding: 10px 0; color: #2c3e50;">{{date}}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Heure :</td>
+                    <td style="padding: 10px 0; color: #2c3e50;">{{time}} ({{timezone}})</td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; font-weight: 600; color: #5a6c7d;">Montant :</td>
+                    <td style="padding: 10px 0; color: #5cb85c; font-weight: bold;">{{amount}}€</td>
+                </tr>
+            </table>
+        </div>
+        
+        <div style="background: #d4edda; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <p style="margin: 0; color: #155724;">
+                <strong>✅ Le paiement a été effectué.</strong> Le montant sera crédité sur votre portefeuille après validation.
+            </p>
+        </div>
+        
+        <div style="text-align: center; margin: 30px 0;">
+            <a href="{{confirmUrl}}" 
+               style="background: linear-gradient(135deg, #28a745 0%, #218838 100%); color: white; padding: 18px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);">
+                ✅ Valider la réservation
+            </a>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+            <p style="margin: 0; color: #856404; font-size: 14px;">
+                <strong>Note :</strong> Une fois validée, le client recevra automatiquement un email de confirmation avec le lien pour rejoindre la session.
+            </p>
+        </div>
+        
+        <p style="font-size: 14px; color: #5a6c7d; margin-top: 30px;">
+            Cordialement,<br>
+            <strong>L'équipe Talenteed</strong>
         </p>
     </div>
     
-    <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e8eef5;">
-        <p style="color: #666; font-size: 12px; margin: 0;">
-            Cet email a été envoyé automatiquement par le système de réservation Talenteed.
-        </p>
+    <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
+        <p>© {{year}} Talenteed. Tous droits réservés.</p>
     </div>
 </div>
