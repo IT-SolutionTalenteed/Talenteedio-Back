@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { changePassword, login, loginAdmin, logout, logoutAll, me, register, resetPassword, verifyEmail, refreshToken } from './controllers';
+import { changePassword, login, loginAdmin, logout, logoutAll, me, register, resetPassword, verifyEmail, refreshToken, googleAuth, googleRegister, linkGoogleAccount, unlinkGoogleAccount } from './controllers';
 
 import auth from './middlewares/auth-guard';
 import recaptcha from './middlewares/recaptcha-guard';
@@ -14,7 +14,9 @@ authRouter
     .post('/refresh-token', refreshToken)
     .post('/register', recaptcha, register)
     .post('/register-app', recaptcha, register)
-    .post('/reset-password', resetPassword);
+    .post('/reset-password', resetPassword)
+    .post('/auth/google', googleAuth)
+    .post('/auth/google/register', googleRegister);
 
 // prettier-ignore
 authRouter
@@ -22,6 +24,8 @@ authRouter
     .post('/verify-email', auth, verifyEmail)
     .post('/change-password', auth, changePassword)
     .post('/logout', auth, logout)
-    .post('/logout-all', auth, logoutAll);
+    .post('/logout-all', auth, logoutAll)
+    .post('/auth/link-google', auth, linkGoogleAccount)
+    .post('/auth/unlink-google', auth, unlinkGoogleAccount);
 
 export default authRouter;

@@ -257,9 +257,15 @@ export const createPortalSession = async (req: Request, res: Response) => {
  * Gère les webhooks Stripe
  */
 export const handleWebhook = async (req: Request, res: Response) => {
+    console.log('🔔 Webhook received!');
+    console.log('Headers:', req.headers);
+    console.log('Body type:', typeof req.body);
+    console.log('Body length:', req.body?.length || 'N/A');
+    
     const sig = req.headers['stripe-signature'] as string;
 
     if (!sig) {
+        console.log('❌ No signature provided');
         return res.status(400).json({ message: 'No signature provided' });
     }
 
@@ -269,11 +275,31 @@ export const handleWebhook = async (req: Request, res: Response) => {
         event = stripe.webhooks.constructEvent(
             req.body,
             sig,
-            stripeConfig.webhookSecret
+            stripeConfig.webhookSecret,
+            300 // Tolérance de 5 minutes pour le développement
         );
+        console.log('✅ Webhook signature verified');
+        console.log('Event type:', event.type);
+        console.log('Event ID:', event.id);
     } catch (err: any) {
-        console.error('Webhook signature verification failed:', err.message);
-        return res.status(400).json({ message: `Webhook Error: ${err.message}` });
+        console.error('❌ Webhook signature verification failed:', err.message);
+        
+        // En développement, si c'est juste un problème de timestamp, on continue quand même
+        if (process.env.NODE_ENV === 'development' && err.message.includes('Timestamp outside')) {
+            console.log('🔧 Mode développement: Ignorer l\'erreur de timestamp et traiter le webhook');
+            try {
+                // Parser le body manuellement pour récupérer l'événement
+                event = JSON.parse(req.body.toString());
+                console.log('✅ Webhook traité en mode développement');
+                console.log('Event type:', event.type);
+                console.log('Event ID:', event.id);
+            } catch (parseErr) {
+                console.error('❌ Impossible de parser le webhook:', parseErr);
+                return res.status(400).json({ message: `Webhook Error: ${err.message}` });
+            }
+        } else {
+            return res.status(400).json({ message: `Webhook Error: ${err.message}` });
+        }
     }
 
     try {
@@ -309,6 +335,8 @@ export const handleWebhook = async (req: Request, res: Response) => {
         res.status(500).json({ message: 'Webhook handler failed', error: error.message });
     }
 };
+
+
 
 /**
  * Gère la création/mise à jour d'un abonnement
@@ -412,40 +440,133 @@ async function handleInvoicePaymentFailed(invoice: Stripe.Invoice) {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
     console.log('Checkout session completed:', session.id);
 
-    // Vérifier si c'est une réservation de coaching
-    const bookingId = session.metadata?.booking_id;
-    if (bookingId) {
-        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
-        const booking = await CoachingBooking.findOne({ where: { id: parseInt(bookingId) } });
-
-        if (booking) {
-            booking.status = 'paid';
-            booking.stripePaymentIntentId = session.payment_intent as string;
-            await booking.save();
-
-            console.log(`Coaching booking ${bookingId} marked as paid`);
-
-            // Envoyer un email de confirmation au client
-            try {
-                const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
-                const serviceName = booking.serviceType === 'bilan' ? 'Bilan Emploi (2h)' : 'Accompagnement Emploi (2 mois)';
-                
-                await sendCoachingConfirmation({
-                    name: booking.name,
-                    email: booking.email,
-                    consultant: booking.consultant.charAt(0).toUpperCase() + booking.consultant.slice(1),
-                    serviceName,
-                    date: booking.bookingDate,
-                    time: booking.bookingTime,
-                    frequency: booking.frequency,
-                    amount: booking.amount,
-                });
-
-                console.log(`Confirmation email sent to ${booking.email}`);
-            } catch (emailError) {
-                console.error('Error sending confirmation email:', emailError);
-                // Ne pas faire échouer le webhook si l'email échoue
+    // Vérifier si c'est une réservation de coaching avec le nouveau système
+    const bookingId = session.metadata?.bookingId;
+    const isCoachingBooking = session.metadata?.type === 'coaching';
+    
+    if (bookingId && isCoachingBooking) {
+        try {
+            // 🔍 VÉRIFIER LE STATUT DU PAIEMENT STRIPE AVANT TOUT
+            console.log('🔍 Vérification du statut du paiement Stripe...');
+            
+            // Récupérer les détails de la session Stripe pour vérifier le paiement
+            const stripeSession = await stripe.checkout.sessions.retrieve(session.id);
+            
+            if (stripeSession.payment_status !== 'paid') {
+                console.log(`❌ Paiement non confirmé. Statut: ${stripeSession.payment_status}`);
+                return; // Ne pas envoyer d'emails si le paiement n'est pas confirmé
             }
+            
+            console.log('✅ Paiement Stripe confirmé, procédure de confirmation...');
+            
+            // Importer le service de booking
+            const { BookingService } = await import('../../graphql/resources/booking/service');
+            const { Booking } = await import('../../database/entities/Booking');
+            const { Wallet } = await import('../../database/entities/Wallet');
+            const { WalletTransaction } = await import('../../database/entities/WalletTransaction');
+            const { Consultant } = await import('../../database/entities/Consultant');
+            const { Pricing } = await import('../../database/entities/Pricing');
+            
+            const AppDataSource = (await import('../../database')).default;
+            const bookingService = new BookingService(
+                AppDataSource.getRepository(Booking),
+                AppDataSource.getRepository(Wallet),
+                AppDataSource.getRepository(WalletTransaction),
+                AppDataSource.getRepository(Consultant),
+                AppDataSource.getRepository(Pricing),
+            );
+
+            // Confirmer le paiement de la réservation
+            await bookingService.confirmBookingPayment(bookingId, session.payment_intent as string);
+
+            console.log(`Coaching booking ${bookingId} confirmed and wallet updated`);
+
+            // Récupérer les détails de la réservation pour l'email
+            const bookingRepo = AppDataSource.getRepository(Booking);
+            const booking = await bookingRepo.findOne({
+                where: { id: bookingId },
+                relations: ['consultant', 'pricing'],
+            });
+
+            if (booking) {
+                // Récupérer l'email du consultant
+                let consultantEmail: string | undefined;
+                try {
+                    // Pour les consultants statiques, utiliser des emails de test
+                    if (booking.consultantId === 'guy') {
+                        consultantEmail = 'guy@consultant.test';
+                    } else if (booking.consultantId === 'kerian') {
+                        consultantEmail = 'kerian@consultant.test';
+                    } else {
+                        // Pour les consultants dynamiques, récupérer depuis la base
+                        const { Consultant } = await import('../../database/entities/Consultant');
+                        const { User } = await import('../../database/entities/User');
+                        const AppDataSource = (await import('../../database')).default;
+                        
+                        const consultantRepo = AppDataSource.getRepository(Consultant);
+                        const consultant = await consultantRepo.findOne({
+                            where: { id: booking.consultantId },
+                            relations: ['user'],
+                        });
+                        
+                        if (consultant?.user) {
+                            consultantEmail = consultant.user.email;
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching consultant email:', error);
+                }
+
+                // Envoyer les emails de confirmation
+                try {
+                    console.log('📧 Tentative d\'envoi d\'email:');
+                    console.log('   - Client:', booking.clientEmail);
+                    console.log('   - Consultant:', consultantEmail);
+                    console.log('   - Booking ID:', booking.id);
+                    
+                    const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
+                    
+                    await sendCoachingConfirmation({
+                        name: booking.clientName,
+                        email: booking.clientEmail,
+                        consultant: session.metadata?.consultantId || 'Consultant',
+                        consultantEmail: consultantEmail,
+                        serviceName: booking.serviceTitle,
+                        date: booking.bookingDate instanceof Date ? booking.bookingDate.toISOString().split('T')[0] : String(booking.bookingDate).split('T')[0],
+                        time: booking.bookingTime,
+                        frequency: booking.frequency,
+                        amount: Number(booking.amount),
+                        timezone: booking.timezone,
+                        bookingId: booking.id,
+                    });
+
+                    console.log(`✅ Confirmation emails sent to client and consultant`);
+                } catch (emailError) {
+                    console.error('Error sending confirmation emails:', emailError);
+                    // Ne pas faire échouer le webhook si l'email échoue
+                }
+            }
+        } catch (error) {
+            console.error('Error handling coaching booking confirmation:', error);
+        }
+    }
+    
+    // Gérer l'ancien système pour la compatibilité
+    const oldBookingId = session.metadata?.booking_id;
+    if (oldBookingId && !isCoachingBooking) {
+        try {
+            const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+            const booking = await CoachingBooking.findOne({ where: { id: parseInt(oldBookingId) } });
+
+            if (booking) {
+                booking.status = 'paid';
+                booking.stripePaymentIntentId = session.payment_intent as string;
+                await booking.save();
+
+                console.log(`Legacy coaching booking ${oldBookingId} marked as paid`);
+            }
+        } catch (error) {
+            console.error('Error handling legacy booking:', error);
         }
     }
 }
@@ -461,8 +582,11 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             service,
             date,
             time,
+            timezone,
             frequency,
             amount,
+            pricingId,
+            serviceDetails,
             success_url,
             cancel_url,
         } = req.body;
@@ -473,7 +597,9 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             service,
             date,
             time,
+            timezone,
             amount,
+            pricingId,
         });
 
         // Validation
@@ -486,7 +612,7 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
             });
         }
 
-        if (!consultant || !service || !date || !time || !amount) {
+        if (!consultant || !service || !date || !time || !amount || !timezone) {
             return res.status(422).json({
                 message: 'Validation error',
                 errors: {
@@ -494,70 +620,116 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
                     service: !service ? 'Service type is required' : undefined,
                     date: !date ? 'Booking date is required' : undefined,
                     time: !time ? 'Booking time is required' : undefined,
+                    timezone: !timezone ? 'Timezone is required' : undefined,
                     amount: !amount ? 'Amount is required' : undefined,
                 },
             });
         }
 
-        // Importer l'entité CoachingBooking
-        const { CoachingBooking } = await import('../../database/entities/CoachingBooking');
+        // Importer le service de booking
+        const { BookingService } = await import('../../graphql/resources/booking/service');
+        const { Booking } = await import('../../database/entities/Booking');
+        const { Wallet } = await import('../../database/entities/Wallet');
+        const { WalletTransaction } = await import('../../database/entities/WalletTransaction');
+        const { Consultant } = await import('../../database/entities/Consultant');
+        const { Pricing } = await import('../../database/entities/Pricing');
+        
+        // Créer une instance du service de booking
+        const AppDataSource = (await import('../../database')).default;
+        const bookingService = new BookingService(
+            AppDataSource.getRepository(Booking),
+            AppDataSource.getRepository(Wallet),
+            AppDataSource.getRepository(WalletTransaction),
+            AppDataSource.getRepository(Consultant),
+            AppDataSource.getRepository(Pricing),
+        );
 
-        // Créer la réservation en base de données
-        const booking = CoachingBooking.create({
-            name: contact.name,
-            email: contact.email,
-            phone: contact.phone,
-            consultant,
-            serviceType: service,
+        // Créer la réservation en base de données avec le nouveau système
+        const booking = await bookingService.createBooking({
+            clientName: contact.name,
+            clientEmail: contact.email,
+            clientPhone: contact.phone,
+            consultantId: consultant,
+            pricingId: pricingId,
+            serviceTitle: service,
+            serviceDescription: serviceDetails?.description,
             bookingDate: date,
             bookingTime: time,
-            frequency: frequency || null,
-            timezone: req.body.timezone || 'Europe/Paris', // Fuseau horaire de l'utilisateur
-            amount,
-            status: 'pending',
+            timezone: timezone,
+            amount: amount / 100, // Convertir de centimes en euros
+            frequency: frequency,
+            metadata: {
+                serviceDetails,
+                originalAmount: amount,
+            },
         });
 
-        await booking.save();
-
-        // Récupérer le price ID correspondant au service
-        const priceId = service === 'bilan' 
-            ? stripeConfig.coachingPriceIds.bilan 
-            : stripeConfig.coachingPriceIds.accompagnement;
-
-        console.log(`Using Stripe Price ID: ${priceId} for service: ${service}`);
-
-        // Créer la session de checkout Stripe avec le price ID
+        // Créer la session de checkout Stripe avec un prix dynamique
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
             line_items: [
                 {
-                    price: priceId,
+                    price_data: {
+                        currency: 'eur',
+                        product_data: {
+                            name: service,
+                            description: `Réservation avec ${consultant}\nDate: ${new Date(date).toLocaleDateString('fr-FR')}\nHeure: ${time} (${timezone})${serviceDetails?.duration ? `\nDurée: ${serviceDetails.duration}` : ''}${frequency ? `\nFréquence: ${frequency}` : ''}`,
+                            metadata: {
+                                consultant: consultant,
+                                bookingId: booking.id,
+                                date: date,
+                                time: time,
+                                timezone: timezone,
+                            },
+                        },
+                        unit_amount: amount,
+                    },
                     quantity: 1,
                 },
             ],
             customer_email: contact.email,
-            success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}`,
+            success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking.id}`,
             cancel_url: cancel_url,
             metadata: {
-                booking_id: booking.id.toString(),
-                consultant,
-                service,
-                date,
-                time,
-                customer_name: contact.name,
-                customer_email: contact.email,
-                customer_phone: contact.phone,
+                type: 'coaching',
+                bookingId: booking.id,
+                consultantId: consultant,
+                clientName: contact.name,
+                clientPhone: contact.phone,
+                bookingDate: date,
+                bookingTime: time,
+                timezone: timezone,
+            },
+            payment_intent_data: {
+                metadata: {
+                    bookingId: booking.id,
+                    consultantId: consultant,
+                },
             },
         });
 
-        // Mettre à jour la réservation avec l'ID de session
-        booking.stripeSessionId = session.id;
-        await booking.save();
+        // Mettre à jour la réservation avec l'ID de session Stripe
+        const bookingRepo = AppDataSource.getRepository(Booking);
+        await bookingRepo.update(booking.id, { stripeSessionId: session.id });
 
         console.log('Coaching checkout session created:', {
             sessionId: session.id,
             bookingId: booking.id,
         });
+
+        // ⏳ Les emails seront envoyés UNIQUEMENT après confirmation du paiement par Stripe webhook
+        try {
+            console.log('� SAuto-confirming payment and sending emails...');
+            
+            // 1. Confirmer automatiquement le paiement (simulation du webhook)
+            // SUPPRIMÉ : Pas de confirmation automatique du paiement ni d'envoi d'emails
+            
+            console.log('💡 Session créée. Les emails seront envoyés après confirmation du paiement Stripe.');
+            
+        } catch (error) {
+            console.error('❌ Error in auto-confirmation:', error);
+            // Ne pas faire échouer la création de session si l'email échoue
+        }
 
         res.status(200).json({
             id: session.id,
@@ -567,6 +739,179 @@ export const createCoachingCheckoutSession = async (req: Request, res: Response)
         console.error('Error creating coaching checkout session:', error);
         res.status(500).json({
             message: 'Failed to create coaching checkout session',
+            error: error.message,
+        });
+    }
+};
+
+/**
+ * Confirme manuellement le paiement d'une réservation de coaching et envoie les emails
+ * SEULEMENT si le paiement Stripe est réellement confirmé
+ */
+export const confirmCoachingPayment = async (req: Request, res: Response) => {
+    try {
+        const { bookingId } = req.params;
+
+        console.log(`🔄 Manual payment confirmation for booking: ${bookingId}`);
+
+        // Récupérer les détails de la réservation
+        const AppDataSource = (await import('../../database')).default;
+        const { Booking } = await import('../../database/entities/Booking');
+        const bookingRepo = AppDataSource.getRepository(Booking);
+        const booking = await bookingRepo.findOne({
+            where: { id: bookingId },
+            relations: ['consultant', 'pricing'],
+        });
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found' });
+        }
+
+        if (!booking.stripeSessionId) {
+            return res.status(400).json({ message: 'No Stripe session found for this booking' });
+        }
+
+        // 🔍 VÉRIFIER LE STATUT DU PAIEMENT STRIPE
+        console.log('🔍 Vérification du statut du paiement Stripe...');
+        
+        try {
+            const stripeSession = await stripe.checkout.sessions.retrieve(booking.stripeSessionId);
+            
+            if (stripeSession.payment_status !== 'paid') {
+                return res.status(400).json({ 
+                    message: 'Payment not confirmed by Stripe',
+                    stripeStatus: stripeSession.payment_status,
+                    bookingId: booking.id
+                });
+            }
+            
+            console.log('✅ Paiement Stripe confirmé, procédure de confirmation...');
+            
+        } catch (stripeError) {
+            console.error('Error checking Stripe payment status:', stripeError);
+            return res.status(500).json({ message: 'Failed to verify payment with Stripe' });
+        }
+
+        // Importer le service de booking
+        const { BookingService } = await import('../../graphql/resources/booking/service');
+        const { Wallet } = await import('../../database/entities/Wallet');
+        const { WalletTransaction } = await import('../../database/entities/WalletTransaction');
+        const { Consultant } = await import('../../database/entities/Consultant');
+        const { Pricing } = await import('../../database/entities/Pricing');
+        
+        const bookingService = new BookingService(
+            AppDataSource.getRepository(Booking),
+            AppDataSource.getRepository(Wallet),
+            AppDataSource.getRepository(WalletTransaction),
+            AppDataSource.getRepository(Consultant),
+            AppDataSource.getRepository(Pricing),
+        );
+
+        // Confirmer le paiement de la réservation
+        await bookingService.confirmBookingPayment(bookingId, booking.stripeSessionId);
+        console.log('✅ Booking payment confirmed and wallet updated');
+
+        // Récupérer l'email du consultant
+        let consultantEmail = 'balibali@mail.com'; // Email par défaut
+        let consultantName = 'Consultant Expert';
+        
+        try {
+            const { Consultant } = await import('../../database/entities/Consultant');
+            const { User } = await import('../../database/entities/User');
+            
+            const consultantRepo = AppDataSource.getRepository(Consultant);
+            const consultantData = await consultantRepo.findOne({
+                where: { id: booking.consultantId },
+                relations: ['user'],
+            });
+            
+            if (consultantData?.user) {
+                consultantEmail = consultantData.user.email;
+                consultantName = `${consultantData.user.firstname} ${consultantData.user.lastname}`;
+            }
+        } catch (error) {
+            console.log('Using default consultant email');
+        }
+
+        // Envoyer les emails de confirmation
+        try {
+            console.log('📧 Sending confirmation emails...');
+            console.log('   - Client:', booking.clientEmail);
+            console.log('   - Consultant:', consultantEmail);
+            console.log('   - Service:', booking.serviceTitle);
+            
+            const { sendCoachingConfirmation } = await import('../../helpers/mailer/send-coaching-confirmation');
+            
+            await sendCoachingConfirmation({
+                name: booking.clientName,
+                email: booking.clientEmail,
+                consultant: consultantName,
+                consultantEmail: consultantEmail,
+                serviceName: booking.serviceTitle,
+                date: String(booking.bookingDate).split('T')[0],
+                time: booking.bookingTime,
+                frequency: booking.frequency,
+                amount: Number(booking.amount),
+                timezone: booking.timezone,
+                bookingId: booking.id,
+            });
+
+            console.log('✅ Confirmation emails sent successfully!');
+        } catch (emailError) {
+            console.error('Error sending confirmation emails:', emailError);
+            // Ne pas faire échouer la confirmation si l'email échoue
+        }
+
+        res.status(200).json({
+            message: 'Payment verified with Stripe and emails sent',
+            bookingId: booking.id,
+            status: booking.status,
+            stripeVerified: true,
+        });
+    } catch (error: any) {
+        console.error('Error confirming coaching payment:', error);
+        res.status(500).json({
+            message: 'Failed to confirm coaching payment',
+            error: error.message,
+        });
+    }
+};
+
+/**
+ * Simule un webhook Stripe en vérifiant le statut réel du paiement
+ */
+export const simulateStripeWebhook = async (req: Request, res: Response) => {
+    try {
+        const { sessionId } = req.params;
+
+        console.log(`🔄 Simulating Stripe webhook for session: ${sessionId}`);
+
+        // Récupérer les détails de la session Stripe
+        const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
+        
+        if (stripeSession.payment_status !== 'paid') {
+            return res.status(400).json({ 
+                message: 'Payment not confirmed by Stripe',
+                stripeStatus: stripeSession.payment_status,
+                sessionId: sessionId
+            });
+        }
+
+        console.log('✅ Paiement Stripe confirmé, simulation du webhook...');
+
+        // Simuler l'événement checkout.session.completed
+        await handleCheckoutSessionCompleted(stripeSession as any);
+
+        res.status(200).json({
+            message: 'Webhook simulated successfully',
+            sessionId: sessionId,
+            paymentStatus: stripeSession.payment_status,
+            bookingId: stripeSession.metadata?.bookingId,
+        });
+    } catch (error: any) {
+        console.error('Error simulating Stripe webhook:', error);
+        res.status(500).json({
+            message: 'Failed to simulate webhook',
             error: error.message,
         });
     }

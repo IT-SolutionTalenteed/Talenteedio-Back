@@ -232,6 +232,7 @@ type Consultant {
     workMode: WORKMODE
     expertise: String
     yearsOfExperience: Int
+    qualities: [String!]
 }
 
 enum WORKMODE {
@@ -506,6 +507,7 @@ input CreateConsultantInput {
     workMode: WORKMODE
     expertise: String
     yearsOfExperience: Int
+    qualities: [String!]
 }
 
 input UpdateConsultantInput {
@@ -524,6 +526,7 @@ input UpdateConsultantInput {
     workMode: WORKMODE
     expertise: String
     yearsOfExperience: Int
+    qualities: [String!]
 }
 
 input CreateCVInput {

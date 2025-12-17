@@ -6,6 +6,8 @@ type Pricing {
   description: String!
   price: Float!
   unit: String
+  duration: String
+  features: [String!]
   consultant: Consultant
   createdAt: String!
   updatedAt: String!
@@ -16,6 +18,8 @@ input CreatePricingInput {
   description: String!
   price: Float!
   unit: String
+  duration: String
+  features: [String!]
   consultantId: ID!
 }
 
@@ -25,6 +29,8 @@ input UpdatePricingInput {
   description: String
   price: Float
   unit: String
+  duration: String
+  features: [String!]
 }
 
 type PricingList {
@@ -35,6 +41,7 @@ type PricingList {
 type Query {
   getPricings(consultantId: ID!): PricingList!
   getOnePricing(id: ID!): Pricing
+  getAllPricings: [Pricing!]!
 }
 
 type Mutation {

@@ -10,8 +10,10 @@ import { FORBIDDEN, UNAUTHORIZED } from '../../helpers/error-constants';
 export default (roles?: RoleName[]) => (next: any) => (_: any, args: any, context: any, info: any) => {
     let token = '';
 
-    if (context.request.headers.headersInit && context.request.headers.headersInit['authorization']) {
-        token = context.request.headers.headersInit['authorization'].split(' ')[1];
+    if (context.request.headers && context.request.headers.authorization) {
+        token = context.request.headers.authorization.split(' ')[1];
+    } else if (context.request.headers && context.request.headers.get && context.request.headers.get('authorization')) {
+        token = context.request.headers.get('authorization').split(' ')[1];
     }
 
     if (!token) {

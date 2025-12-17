@@ -8,6 +8,8 @@ export { Freelance } from './Freelance';
 export { Consultant } from './Consultant';
 export { Talent } from './Talent';
 export { Article } from './Article';
+export { BlockedDate } from './BlockedDate';
+export { BlockedTimeSlot } from './BlockedTimeSlot';
 export { Media } from './Media';
 export { Setting } from './Setting';
 export { Contact } from './Contact';
