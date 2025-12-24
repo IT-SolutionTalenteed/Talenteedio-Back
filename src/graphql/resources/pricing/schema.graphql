@@ -8,6 +8,7 @@ type Pricing {
   unit: String
   duration: String
   features: [String!]
+  meetingLink: String
   consultant: Consultant
   createdAt: String!
   updatedAt: String!
@@ -20,6 +21,7 @@ input CreatePricingInput {
   unit: String
   duration: String
   features: [String!]
+  meetingLink: String
   consultantId: ID!
 }
 
@@ -31,6 +33,7 @@ input UpdatePricingInput {
   unit: String
   duration: String
   features: [String!]
+  meetingLink: String
 }
 
 type PricingList {

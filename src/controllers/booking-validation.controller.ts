@@ -97,26 +97,46 @@ export class BookingValidationController {
     message?: string
   ): Promise<void> {
     try {
-      // Temporairement désactivé pour éviter l'erreur d'import
-      // const { sendBookingValidationNotification } = await import('../helpers/mailer/send-booking-validation-notification');
-      console.log('Validation notification would be sent to:', booking.clientEmail);
+      console.log('=== Sending validation notification ===');
+      console.log('Booking ID:', booking.id);
+      console.log('Client Email:', booking.clientEmail);
+      console.log('Action:', action);
+      console.log('Pricing ID:', booking.pricingId);
       
-      // Temporairement désactivé
-      // await sendBookingValidationNotification({
-      //   clientName: booking.clientName,
-      //   clientEmail: booking.clientEmail,
-      //   serviceName: booking.serviceTitle,
-      //   date: booking.bookingDate.toISOString().split('T')[0],
-      //   time: booking.bookingTime,
-      //   timezone: booking.timezone,
-      //   action: action,
-      //   consultantMessage: message,
-      //   amount: Number(booking.amount),
-      // });
+      const { sendBookingValidationNotification } = await import('../helpers/mailer/send-booking-validation-notification');
+      
+      // Récupérer le lien de réunion du pricing si disponible
+      let meetingLink: string | undefined;
+      if (action === 'confirm' && booking.pricingId) {
+        const pricingRepo = AppDataSource.getRepository(Pricing);
+        const pricing = await pricingRepo.findOne({ where: { id: booking.pricingId } });
+        console.log('Pricing found:', pricing ? 'Yes' : 'No');
+        console.log('Meeting Link:', pricing?.meetingLink);
+        meetingLink = pricing?.meetingLink;
+      }
+      
+      const emailData = {
+        clientName: booking.clientName,
+        clientEmail: booking.clientEmail,
+        serviceName: booking.serviceTitle,
+        date: booking.bookingDate instanceof Date 
+          ? booking.bookingDate.toISOString().split('T')[0] 
+          : String(booking.bookingDate).split('T')[0],
+        time: booking.bookingTime,
+        timezone: booking.timezone,
+        action: action,
+        consultantMessage: message,
+        amount: Number(booking.amount),
+        meetingLink: meetingLink,
+      };
+      
+      console.log('Email data:', JSON.stringify(emailData, null, 2));
+      
+      await sendBookingValidationNotification(emailData);
 
-      console.log(`Validation notification sent to ${booking.clientEmail}`);
+      console.log(`✅ Validation notification sent to ${booking.clientEmail}`);
     } catch (error) {
-      console.error('Error sending validation notification:', error);
+      console.error('❌ Error sending validation notification:', error);
       // Ne pas faire échouer la validation si l'email échoue
     }
   }

@@ -10,6 +10,7 @@ interface BookingValidationNotificationData {
   action: 'confirm' | 'reject';
   consultantMessage?: string;
   amount: number;
+  meetingLink?: string; // Lien de réunion du pricing
 }
 
 export const sendBookingValidationNotification = async (data: BookingValidationNotificationData) => {
@@ -37,6 +38,7 @@ export const sendBookingValidationNotification = async (data: BookingValidationN
         consultantMessage: data.consultantMessage,
         amount: data.amount.toFixed(2),
         isConfirmed: isConfirmed,
+        meetingLink: isConfirmed ? data.meetingLink : undefined, // Inclure le lien seulement si confirmé
         year: new Date().getFullYear(),
       },
     };

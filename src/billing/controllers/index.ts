@@ -517,7 +517,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
                     console.error('Error fetching consultant email:', error);
                 }
 
-                // Envoyer les emails de confirmation
+                // Envoyer les emails de confirmation (paiement reçu + demande validation consultant)
                 try {
                     console.log('📧 Tentative d\'envoi d\'email:');
                     console.log('   - Client:', booking.clientEmail);
@@ -833,7 +833,7 @@ export const confirmCoachingPayment = async (req: Request, res: Response) => {
             console.log('Using default consultant email');
         }
 
-        // Envoyer les emails de confirmation
+        // Envoyer les emails de confirmation (paiement reçu + demande validation consultant)
         try {
             console.log('📧 Sending confirmation emails...');
             console.log('   - Client:', booking.clientEmail);

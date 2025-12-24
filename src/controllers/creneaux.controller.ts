@@ -10,14 +10,13 @@ interface AuthenticatedRequest extends Request {
   session: any;
 }
 
-// Helper function to get consultant from user
-const getConsultantFromUser = async (user: User): Promise<Consultant | null> => {
-  const consultantRepo = AppDataSource.getRepository(Consultant);
-  return await consultantRepo
-    .createQueryBuilder('consultant')
-    .leftJoinAndSelect('consultant.user', 'user')
-    .where('user.id = :userId', { userId: user.id })
-    .getOne();
+// Helper function to get consultant from user (utilise la relation déjà chargée par le middleware)
+const getConsultantFromUser = (user: User): Consultant | null => {
+  // Le middleware auth-guard charge déjà la relation consultant
+  if (user.consultant) {
+    return user.consultant;
+  }
+  return null;
 };
 
 export const creneauxController = {
@@ -29,7 +28,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -55,7 +54,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -81,7 +80,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -142,7 +141,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -217,7 +216,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -243,7 +242,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }
@@ -306,7 +305,7 @@ export const creneauxController = {
         return res.status(401).json({ message: 'Non authentifié' });
       }
 
-      const consultant = await getConsultantFromUser(user);
+      const consultant = getConsultantFromUser(user);
       if (!consultant) {
         return res.status(403).json({ message: 'Accès réservé aux consultants' });
       }

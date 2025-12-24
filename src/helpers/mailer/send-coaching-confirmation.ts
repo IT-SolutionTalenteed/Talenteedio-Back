@@ -46,9 +46,9 @@ export const sendCoachingConfirmation = async (data: CoachingConfirmationData) =
     // Email au consultant pour validation
     if (data.consultantEmail) {
       const consultantMailOptions = {
-        from: data.consultantEmail, // Utiliser l'email du consultant comme expéditeur
+        from: process.env.MAILUSER,
         to: data.consultantEmail,
-        subject: `Nouvelle réservation à valider - ${data.serviceName}`,
+        subject: `Nouvelle réservation - ${data.serviceName}`,
         template: 'consultant-booking-validation',
         context: {
           consultant: data.consultant,
@@ -66,8 +66,7 @@ export const sendCoachingConfirmation = async (data: CoachingConfirmationData) =
           frequency: data.frequency === 'weekly' ? 'Hebdomadaire' : data.frequency === 'biweekly' ? 'Toutes les 2 semaines' : null,
           amount: typeof data.amount === 'number' ? data.amount.toFixed(2) : (data.amount / 100).toFixed(2),
           bookingId: data.bookingId,
-          confirmUrl: `${process.env.FRONTEND_HOST}/coaching-emploi/validate-booking/${data.bookingId}?action=confirm`,
-          rejectUrl: `${process.env.FRONTEND_HOST}/coaching-emploi/validate-booking/${data.bookingId}?action=reject`,
+          confirmUrl: `${process.env.FRONTEND_HOST}/coaching-emploi/validate-booking/${data.bookingId}`,
           year: new Date().getFullYear(),
         },
       };
