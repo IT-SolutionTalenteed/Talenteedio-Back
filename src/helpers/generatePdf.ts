@@ -2,8 +2,8 @@
 import path from 'path';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
+import * as pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 import jsdom from 'jsdom';
 import htmlToPdfmake from 'html-to-pdfmake';
 import { CV, LM, Talent, User, Value } from '../database/entities';
@@ -16,7 +16,7 @@ const { JSDOM } = jsdom;
 const { window } = new JSDOM('');
 
 // Load the font files
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+(pdfMake as any).vfs = pdfFonts;
 
 const getImageBase64 = (path: string) => {
     return fs.readFileSync(path, { encoding: 'base64' });

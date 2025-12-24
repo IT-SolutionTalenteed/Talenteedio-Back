@@ -2,5 +2,5 @@
     "watch": ["src", "public"],
     "ext": ".ts,.js,.tsx,.graphql,.css,.handlebars",
     "ignore": [],
-    "exec": "ts-node ./src/index.ts"
+    "exec": "npx ts-node ./src/index.ts"
 }

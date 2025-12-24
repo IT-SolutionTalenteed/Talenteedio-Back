@@ -48,6 +48,8 @@ const serve = async () => {
                     'http://localhost:4200',
                     'http://127.0.0.1:4200',
                     'http://localhost:5173',
+                    'http://localhost:8082',
+                    'http://localhost:8081',
                     'https://talenteed.rhosa.net',
                     'https://www.talenteed.rhosa.net', //
                     'https://talenteed.io',
@@ -80,7 +82,7 @@ const serve = async () => {
 
         app.set('trust proxy', 1);
 
-        app.use(sessionMiddleware);
+        app.use(sessionMiddleware as any);
 
         // Auth
         app.use('/api', authRouter);
