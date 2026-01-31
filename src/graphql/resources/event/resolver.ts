@@ -2,7 +2,7 @@ import { createGraphQLError } from 'graphql-yoga';
 import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { In, Like } from 'typeorm';
 
-import { Event, Category, User } from '../../../database/entities';
+import { Event, Category, User, Company } from '../../../database/entities';
 import { PaginationInput, Resource, CreateEventInput, UpdateEventInput, DeleteEventInput, ChangeEventStatusInput } from '../../../type';
 import { getResources, returnError } from '../../../helpers/graphql';
 import AppDataSource from '../../../database';
@@ -11,12 +11,12 @@ import guard from '../../middleware/graphql-guard';
 
 import { BAD_REQUEST, NOT_FOUND } from '../../../helpers/error-constants';
 
-const relations = ['admin.user', 'categories'];
+const relations = ['admin.user', 'category', 'companies'];
 
 const resolver = {
     Query: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; title: string; status: string } }, context: any): Promise<Resource<Event>> => {
+        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; title: string; status: string; category: string } }, context: any): Promise<Resource<Event>> => {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let filters: any;
@@ -34,6 +34,11 @@ const resolver = {
 
                     if (args.filter.adminId) {
                         filters.where.admin = { id: args.filter.adminId };
+                    }
+
+                    // Filtrer par catégorie (slug)
+                    if (args.filter.category) {
+                        filters.where.category = { slug: args.filter.category };
                     }
                 } else if (!user?.admin) {
                     filters = { where: { status: 'public' } };
@@ -92,6 +97,21 @@ const resolver = {
 
                 newEvent.admin = user.admin;
 
+                // Handle category
+                if (args.input.category) {
+                    const category = await Category.findOne({ where: { id: args.input.category.id } });
+                    if (category) {
+                        newEvent.category = category;
+                    }
+                }
+
+                // Handle companies
+                if (Array.isArray(args.input.companies) && args.input.companies.length) {
+                    const companyIds = args.input.companies.map((company: any) => company.id);
+                    const companiesToAdd = await Company.findBy({ id: In(companyIds) });
+                    newEvent.companies = companiesToAdd;
+                }
+
                 await queryRunner.manager.save(newEvent);
 
                 await queryRunner.commitTransaction();
@@ -122,17 +142,24 @@ const resolver = {
                 });
 
                 if (event) {
-                    if (Array.isArray(args.input.categories) && args.input.categories.length) {
-                        const categories = args.input.categories.map((category) => category.id);
-
-                        const categoriesToUpdate = await Category.findBy({ id: In(categories) });
-
-                        // Update the event's categories
-                        event.categories = categoriesToUpdate;
-                        await queryRunner.manager.save(event);
+                    // Handle category update
+                    if (args.input.category) {
+                        const category = await Category.findOne({ where: { id: args.input.category.id } });
+                        if (category) {
+                            event.category = category;
+                        }
+                    } else if (args.input.category === null) {
+                        event.category = null as any;
                     }
 
-                    const updatedEvent = Object.assign(event, { ...args.input, categories: undefined });
+                    // Handle companies update
+                    if (Array.isArray(args.input.companies) && args.input.companies.length) {
+                        const companyIds = args.input.companies.map((company: any) => company.id);
+                        const companiesToUpdate = await Company.findBy({ id: In(companyIds) });
+                        event.companies = companiesToUpdate;
+                    }
+
+                    const updatedEvent = Object.assign(event, { ...args.input, category: undefined, companies: undefined });
                     await queryRunner.manager.save(event);
 
                     await queryRunner.commitTransaction();

@@ -1,5 +1,5 @@
-import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, CreateDateColumn } from 'typeorm';
-import { Admin, Category } from '.';
+import { BaseEntity, Entity, PrimaryGeneratedColumn, Column, ManyToOne, ManyToMany, JoinTable, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Admin, Category, Company } from '.';
 
 enum STATUS {
     PUBLIC = 'public',
@@ -35,13 +35,31 @@ export class Event extends BaseEntity {
     @Column({ type: 'date' })
     date: Date;
 
+    @Column({ type: 'time', nullable: true })
+    startTime: string; // Heure de début (ex: "14:00")
+
+    @Column({ type: 'time', nullable: true })
+    endTime: string; // Heure de fin (ex: "18:00")
+
+    @Column({ nullable: true })
+    location: string; // Lieu de l'événement
+
+    @Column({ type: 'int', nullable: true })
+    maxParticipants: number; // Nombre maximum de participants
+
     @ManyToOne(() => Admin, (admin) => admin.events)
     admin: Admin;
 
-    @ManyToMany(() => Category)
+    @ManyToOne(() => Category, { nullable: true })
+    category: Category; // Une seule catégorie par événement
+
+    @ManyToMany(() => Company)
     @JoinTable()
-    categories: Category[];
+    companies: Company[]; // Companies participant à l'événement
 
     @CreateDateColumn()
-    createdAt: Date; // Creation date
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
 }

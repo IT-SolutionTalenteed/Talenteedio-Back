@@ -131,9 +131,10 @@ const resolver = {
                 });
 
                 if (company) {
-                    const user = context.req.session.user as User;
+                    const user = context.req.session?.user as User | undefined;
 
-                    if (user.company && company.id !== user.company.id) {
+                    // Si l'utilisateur est connecté et a une company, vérifier qu'il accède à sa propre company
+                    if (user?.company && company.id !== user.company.id) {
                         throw createGraphQLError('Access denied for this company', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
                     }
 
@@ -1735,7 +1736,7 @@ const resolver = {
 const resolversComposition: any = {
     'Query.getUsers': [guard(['admin'])],
     'Query.getOneUsers': [guard(['admin', 'talent', 'company', 'referral'])],
-    'Query.getOneCompany': [guard(['admin', 'company'])],
+    // 'Query.getOneCompany': [guard(['admin', 'company'])], // Commenté pour rendre public
     'Query.getReferrals': [guard(['admin'])],
     'Query.getOneReferral': [guard(['admin', 'referral'])],
     'Query.getHrFirstClubs': [guard(['admin'])],

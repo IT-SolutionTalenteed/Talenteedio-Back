@@ -2,10 +2,10 @@
 # import Status from '../../type.graphql'
 # import Admin from '../user/schema.graphql'
 # import Company from '../user/schema.graphql'
+# import UpdateCompanyInput from '../user/schema.graphql'
 # import Media from '../media/schema.graphql'
 # import MediaInput from '../media/schema.graphql'
 # import Category from '../category/schema.graphql'
-# import UpdateCategoryInput from '../category/schema.graphql'
 # import UpdateCategoryInput from '../category/schema.graphql'
 
 scalar Date
@@ -47,7 +47,12 @@ input CreateEventInput {
     date: Date!
     metaDescription: String
     status: Status
-    categories: [UpdateCategoryInput]
+    startTime: String
+    endTime: String
+    location: String
+    maxParticipants: Int
+    category: UpdateCategoryInput
+    companies: [UpdateCompanyInput]
 }
 
 input UpdateEventInput {
@@ -58,7 +63,12 @@ input UpdateEventInput {
     date: Date
     metaDescription: String
     status: Status
-    categories: [UpdateCategoryInput]
+    startTime: String
+    endTime: String
+    location: String
+    maxParticipants: Int
+    category: UpdateCategoryInput
+    companies: [UpdateCompanyInput]
 }
 
 type PaginateEvent {
@@ -76,9 +86,15 @@ type Event {
     date: Date!
     metaDescription: String
     status: Status!
+    startTime: String
+    endTime: String
+    location: String
+    maxParticipants: Int
     admin: Admin
-    categories: [Category]
+    category: Category
+    companies: [Company]
     createdAt: Date
+    updatedAt: Date
 }
 
 input EventFilter {
