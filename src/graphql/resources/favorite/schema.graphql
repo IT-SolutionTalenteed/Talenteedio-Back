@@ -1,0 +1,52 @@
+# import PaginationInput from '../../type.graphql'
+# import User from '../user/schema.graphql'
+# import Job from '../job/schema.graphql'
+# import FreelanceJob from '../jobFreelance/schema.graphql'
+
+type Favorite {
+    id: ID!
+    user: User!
+    job: Job
+    type: FavoriteType!
+    createdAt: String!
+}
+
+enum FavoriteType {
+    job
+    freelance
+}
+
+input AddFavoriteInput {
+    itemId: ID!
+    type: FavoriteType!
+}
+
+input RemoveFavoriteInput {
+    itemId: ID!
+    type: FavoriteType!
+}
+
+type FavoriteResponse {
+    success: Boolean!
+    message: String
+    favorite: Favorite
+}
+
+type FavoritesResource {
+    data: [Favorite!]!
+    total: Int!
+    page: Int!
+    limit: Int!
+}
+
+type Query {
+    getFavorites(input: PaginationInput, type: FavoriteType): FavoritesResource!
+    getRecentFavorites(limit: Int): [Favorite!]!
+    isFavorite(itemId: ID!, type: FavoriteType!): Boolean!
+}
+
+type Mutation {
+    addFavorite(input: AddFavoriteInput!): FavoriteResponse!
+    removeFavorite(input: RemoveFavoriteInput!): FavoriteResponse!
+    toggleFavorite(input: AddFavoriteInput!): FavoriteResponse!
+}

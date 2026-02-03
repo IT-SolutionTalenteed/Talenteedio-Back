@@ -19,6 +19,7 @@ import referredSchema from './referred';
 import joinUsSchema from './joinUs';
 import adSchema from './ad';
 import pricingSchema from './pricing';
+import favoriteSchema from './favorite';
 
 export {
     mailerSchema,
@@ -42,4 +43,5 @@ export {
     joinUsSchema,
     adSchema,
     pricingSchema,
+    favoriteSchema,
 };

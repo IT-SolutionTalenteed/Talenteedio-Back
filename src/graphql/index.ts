@@ -24,6 +24,7 @@ import {
     joinUsSchema,
     adSchema,
     pricingSchema,
+    favoriteSchema,
 } from './resources';
 
 dotenv.config();
@@ -54,5 +55,6 @@ graphqlRouter.use('/referred', createYoga({ schema: referredSchema, graphqlEndpo
 graphqlRouter.use('/join-us', createYoga({ schema: joinUsSchema, graphqlEndpoint: '/api/join-us' }));
 graphqlRouter.use('/ad', createYoga({ schema: adSchema, graphqlEndpoint: '/api/ad' }));
 graphqlRouter.use('/pricing', createYoga({ schema: pricingSchema, graphqlEndpoint: '/api/pricing', graphiql }));
+graphqlRouter.use('/favorite', createYoga({ schema: favoriteSchema, graphqlEndpoint: '/api/favorite', graphiql }));
 
 export default graphqlRouter;

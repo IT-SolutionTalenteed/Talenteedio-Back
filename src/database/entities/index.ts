@@ -36,3 +36,4 @@ export { ProfileMatchResult } from './ProfileMatchResult';
 export { CVTransmissionLog, RECIPIENT_TYPE, TRANSMISSION_METHOD } from './CVTransmissionLog';
 export { ApplicationFeedback, REVIEWER_TYPE } from './ApplicationFeedback';
 export { Pricing } from './Pricing';
+export { Favorite, FAVORITE_TYPE } from './Favorite';
