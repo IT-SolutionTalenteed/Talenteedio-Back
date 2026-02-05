@@ -50,6 +50,9 @@ export class Event extends BaseEntity {
     @ManyToOne(() => Admin, (admin) => admin.events)
     admin: Admin;
 
+    @ManyToOne(() => Company, { nullable: true })
+    company: Company; // Company propriétaire de l'événement
+
     @ManyToOne(() => Category, { nullable: true })
     category: Category; // Une seule catégorie par événement
 

@@ -3,7 +3,7 @@ import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 
-import { Address, Admin, Company, Contact, Referral, Freelance, Consultant, Talent, User, Skill, CV, LM, Media, Value } from '../../../database/entities';
+import { Address, Admin, Company, Contact, Referral, Freelance, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateFreelanceInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateFreelanceInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
 import { getResources, returnError } from '../../../helpers/graphql';
 
@@ -565,6 +565,26 @@ const resolver = {
                 if (args.input?.role === 'admin') {
                     user.admin = new Admin();
                     await queryRunner.manager.save(user.admin);
+                    user.validateAt = new Date();
+                } else if (args.input?.role === 'company' || args.input?.role === 'other') {
+                    // Get the default permission
+                    const permission = await queryRunner.manager.findOne(Permission, {
+                        where: { title: 'Initial Package' }
+                    });
+
+                    if (!permission) {
+                        throw createGraphQLError('Default permission not found. Please run database seeds.', { 
+                            extensions: { statusCode: 500, statusText: 'INTERNAL_SERVER_ERROR' } 
+                        });
+                    }
+
+                    // Create company entity for company role
+                    const company = new Company();
+                    company.company_name = `${user.firstname} ${user.lastname}`;
+                    company.permission = permission;
+                    // status will use default STATUS.PUBLIC from entity
+                    await queryRunner.manager.save(company);
+                    user.company = company;
                     user.validateAt = new Date();
                 }
 

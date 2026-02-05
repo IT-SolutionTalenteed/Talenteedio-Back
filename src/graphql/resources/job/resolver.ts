@@ -72,6 +72,10 @@ const resolver = {
 
                     if (args.filter.location) filters.where.location = { id: args.filter.location };
                     if (args.filter.category) filters.where.category = { id: args.filter.category };
+                    if (args.filter.companyId) {
+                        console.log('[DEBUG] Filtering by companyId:', args.filter.companyId);
+                        filters.where.company = { id: args.filter.companyId };
+                    }
                     if (args.filter.salaryMin) filters.where.salaryMin = MoreThan(args.filter.salaryMin);
                     if (args.filter.salaryMax) filters.where.salaryMax = LessThan(args.filter.salaryMax);
                     if (args.filter.experienceLevels) filters.where.experience = MoreThan(args.filter.experienceLevels);
@@ -84,7 +88,6 @@ const resolver = {
 
                     if (user && (user.admin || user.company)) {
                         if (args.filter.adminId) filters.where.admin = { id: args.filter.adminId };
-                        else if (args.filter.companyId) filters.where.company = { id: args.filter.companyId };
                     }
 
                     if (user && !user.talent && args.filter.isFeatured) {
@@ -96,6 +99,7 @@ const resolver = {
                     filters = { where: { status: 'public', isFeatured: false } };
                 }
 
+                console.log('[DEBUG] Final filters:', JSON.stringify(filters, null, 2));
                 const res = await getResources(Job, args.input, relations, filters);
 
                 return res;

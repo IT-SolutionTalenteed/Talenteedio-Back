@@ -262,6 +262,8 @@ const resolver = {
 const resolversComposition = {
     'Mutation.*': [guard(['admin'])],
     'Mutation.createArticle': [companyGuard('article')],
+    'Mutation.updateArticle': [companyGuard('article')],
+    'Mutation.deleteArticle': [companyGuard('article')],
 };
 
 export default composeResolvers(resolver, resolversComposition);

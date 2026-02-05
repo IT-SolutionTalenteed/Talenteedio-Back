@@ -3,7 +3,7 @@ import { PaginationInput, Resource } from '../../../type';
 import { Job, JobType } from '../../../database/entities';
 import { getResources, returnError } from '../../../helpers/graphql';
 
-const relations = ['featuredImage', 'location', 'jobType', 'category'];
+const relations = ['featuredImage', 'location', 'jobType', 'category', 'company'];
 
 const resolver = {
     Query: {
@@ -22,6 +22,7 @@ const resolver = {
                     jobTypes: string[];
                     datePosted: number;
                     isFeatured: boolean;
+                    companyId: string;
                 };
             }
         ): Promise<Resource<Job>> => {
@@ -52,6 +53,7 @@ const resolver = {
 
                     if (args.filter.location) filters.where.location = { id: args.filter.location };
                     if (args.filter.category) filters.where.category = { id: args.filter.category };
+                    if (args.filter.companyId) filters.where.company = { id: args.filter.companyId };
                     if (args.filter.salaryMin) filters.where.salaryMin = MoreThan(args.filter.salaryMin);
                     if (args.filter.salaryMax) filters.where.salaryMax = LessThan(args.filter.salaryMax);
                     if (args.filter.experienceLevels) filters.where.experience = MoreThan(args.filter.experienceLevels);

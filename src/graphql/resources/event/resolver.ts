@@ -8,15 +8,16 @@ import { getResources, returnError } from '../../../helpers/graphql';
 import AppDataSource from '../../../database';
 
 import guard from '../../middleware/graphql-guard';
+import companyGuard from '../../middleware/company-guard';
 
-import { BAD_REQUEST, NOT_FOUND } from '../../../helpers/error-constants';
+import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 
-const relations = ['admin.user', 'category', 'companies'];
+const relations = ['admin.user', 'company', 'category', 'companies'];
 
 const resolver = {
     Query: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; title: string; status: string; category: string } }, context: any): Promise<Resource<Event>> => {
+        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; companyId: string; title: string; status: string; category: string } }, context: any): Promise<Resource<Event>> => {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let filters: any;
@@ -34,6 +35,10 @@ const resolver = {
 
                     if (args.filter.adminId) {
                         filters.where.admin = { id: args.filter.adminId };
+                    }
+
+                    if (args.filter.companyId) {
+                        filters.where.company = { id: args.filter.companyId };
                     }
 
                     // Filtrer par catégorie (slug)
@@ -95,7 +100,15 @@ const resolver = {
 
                 const user = context.req.session.user as User;
 
-                newEvent.admin = user.admin;
+                // Si c'est un admin, on assigne l'admin
+                if (user.admin) {
+                    newEvent.admin = user.admin;
+                }
+
+                // Si c'est une company, on l'assigne comme propriétaire
+                if (user.company) {
+                    newEvent.company = user.company;
+                }
 
                 // Handle category
                 if (args.input.category) {
@@ -110,6 +123,9 @@ const resolver = {
                     const companyIds = args.input.companies.map((company: any) => company.id);
                     const companiesToAdd = await Company.findBy({ id: In(companyIds) });
                     newEvent.companies = companiesToAdd;
+                } else if (user.company) {
+                    // Si c'est une company qui crée l'événement, l'ajouter automatiquement comme participante
+                    newEvent.companies = [user.company];
                 }
 
                 await queryRunner.manager.save(newEvent);
@@ -128,7 +144,7 @@ const resolver = {
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        updateEvent: async (_: any, args: { input: UpdateEventInput }): Promise<Event> => {
+        updateEvent: async (_: any, args: { input: UpdateEventInput }, context: any): Promise<Event> => {
             const queryRunner = AppDataSource.createQueryRunner();
 
             await queryRunner.startTransaction();
@@ -142,6 +158,15 @@ const resolver = {
                 });
 
                 if (event) {
+                    const user = context.req.session.user as User;
+
+                    // Vérification de sécurité: une company ne peut modifier que ses propres événements
+                    if (user.company && event.company?.id !== user.company.id) {
+                        throw createGraphQLError('Access denied for this event', { 
+                            extensions: { statusCode: 403, statusText: 'FORBIDDEN' } 
+                        });
+                    }
+
                     // Handle category update
                     if (args.input.category) {
                         const category = await Category.findOne({ where: { id: args.input.category.id } });
@@ -153,16 +178,38 @@ const resolver = {
                     }
 
                     // Handle companies update
-                    if (Array.isArray(args.input.companies) && args.input.companies.length) {
-                        const companyIds = args.input.companies.map((company: any) => company.id);
-                        const companiesToUpdate = await Company.findBy({ id: In(companyIds) });
-                        event.companies = companiesToUpdate;
+                    if (Array.isArray(args.input.companies)) {
+                        if (args.input.companies.length > 0) {
+                            const companyIds = args.input.companies.map((company: any) => company.id);
+                            const companiesToUpdate = await Company.findBy({ id: In(companyIds) });
+                            event.companies = companiesToUpdate;
+                        } else {
+                            // Si le tableau est vide, on supprime toutes les companies
+                            event.companies = [];
+                        }
                     }
 
-                    const updatedEvent = Object.assign(event, { ...args.input, category: undefined, companies: undefined });
-                    await queryRunner.manager.save(event);
+                    // Update other fields
+                    Object.assign(event, { 
+                        ...args.input, 
+                        category: undefined, 
+                        companies: undefined 
+                    });
+
+                    // Save the event with the updated companies relation
+                    await queryRunner.manager.save(Event, event);
 
                     await queryRunner.commitTransaction();
+
+                    // Reload the event with all relations to return the updated data
+                    const updatedEvent = await Event.findOne({
+                        where: { id: event.id },
+                        relations,
+                    });
+
+                    if (!updatedEvent) {
+                        throw createGraphQLError('Event not found after update', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                    }
 
                     return updatedEvent;
                 }
@@ -179,7 +226,7 @@ const resolver = {
         },
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        deleteEvent: async (_: any, args: { input: DeleteEventInput }): Promise<{ success: boolean }> => {
+        deleteEvent: async (_: any, args: { input: DeleteEventInput }, context: any): Promise<{ success: boolean }> => {
             try {
                 const eventRepository = AppDataSource.getRepository(Event);
 
@@ -191,6 +238,15 @@ const resolver = {
                 });
 
                 if (event) {
+                    const user = context.req.session.user as User;
+                    
+                    // Vérification de sécurité: une company ne peut supprimer que ses propres événements
+                    if (user.company && event.company?.id !== user.company.id) {
+                        throw createGraphQLError('Access denied for this event', { 
+                            extensions: { statusCode: 403, statusText: 'FORBIDDEN' } 
+                        });
+                    }
+
                     const result = await eventRepository.delete(event.id);
                     return { success: result.affected === 1 };
                 }
@@ -233,6 +289,9 @@ const resolver = {
 
 const resolversComposition = {
     'Mutation.*': [guard(['admin'])],
+    'Mutation.createEvent': [guard(['admin', 'company'])],
+    'Mutation.updateEvent': [guard(['admin', 'company'])],
+    'Mutation.deleteEvent': [guard(['admin', 'company'])],
 };
 
 export default composeResolvers(resolver, resolversComposition);

@@ -91,6 +91,7 @@ type Event {
     location: String
     maxParticipants: Int
     admin: Admin
+    company: Company
     category: Category
     companies: [Company]
     createdAt: Date
@@ -99,6 +100,8 @@ type Event {
 
 input EventFilter {
     adminId: String
+    companyId: String
     title: String
     status: String
+    category: String
 }

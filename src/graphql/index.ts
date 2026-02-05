@@ -57,4 +57,36 @@ graphqlRouter.use('/ad', createYoga({ schema: adSchema, graphqlEndpoint: '/api/a
 graphqlRouter.use('/pricing', createYoga({ schema: pricingSchema, graphqlEndpoint: '/api/pricing', graphiql }));
 graphqlRouter.use('/favorite', createYoga({ schema: favoriteSchema, graphqlEndpoint: '/api/favorite', graphiql }));
 
+// Catch-all route for /api - return helpful error message
+graphqlRouter.all('/', (req, res) => {
+    res.status(404).json({
+        error: 'No GraphQL endpoint at /api root',
+        message: 'Please use a specific endpoint like /api/user, /api/article, /api/event, etc.',
+        availableEndpoints: [
+            '/api/user',
+            '/api/article',
+            '/api/media',
+            '/api/setting',
+            '/api/skill',
+            '/api/location',
+            '/api/job-type',
+            '/api/category',
+            '/api/job',
+            '/api/jobfreelance',
+            '/api/testimonial',
+            '/api/event',
+            '/api/partner',
+            '/api/interview',
+            '/api/value',
+            '/api/permission',
+            '/api/referred',
+            '/api/join-us',
+            '/api/ad',
+            '/api/pricing',
+            '/api/favorite',
+            '/api/mailer'
+        ]
+    });
+});
+
 export default graphqlRouter;
