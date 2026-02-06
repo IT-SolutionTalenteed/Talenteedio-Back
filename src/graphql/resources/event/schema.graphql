@@ -2,6 +2,7 @@
 # import Status from '../../type.graphql'
 # import Admin from '../user/schema.graphql'
 # import Company from '../user/schema.graphql'
+# import User from '../user/schema.graphql'
 # import UpdateCompanyInput from '../user/schema.graphql'
 # import Media from '../media/schema.graphql'
 # import MediaInput from '../media/schema.graphql'
@@ -13,6 +14,9 @@ scalar Date
 type Query {
     getEvents(input: PaginationInput, filter: EventFilter): PaginateEvent
     getOneEvent(input: GetOneEventInput): Event
+    getEventParticipationRequests(input: PaginationInput, filter: ParticipationRequestFilter): PaginateParticipationRequest
+    getEventUserReservations(input: PaginationInput, filter: UserReservationFilter): PaginateUserReservation
+    getMyEventParticipationStatus(eventId: String!): ParticipationStatusResponse
 }
 
 type Mutation {
@@ -20,6 +24,10 @@ type Mutation {
     createEvent(input: CreateEventInput): Event
     deleteEvent(input: DeleteEventInput): DeleteEventResponse
     changeEventStatus(input: ChangeEventStatusInput): Event
+    requestEventParticipation(input: RequestParticipationInput): EventParticipationRequest
+    reviewParticipationRequest(input: ReviewParticipationInput): EventParticipationRequest
+    createEventReservation(input: CreateReservationInput): EventUserReservation
+    cancelEventReservation(reservationId: String!): EventUserReservation
 }
 
 input ChangeEventStatusInput {
@@ -104,4 +112,93 @@ input EventFilter {
     title: String
     status: String
     category: String
+}
+
+# Event Participation Request Types
+enum ParticipationRequestStatus {
+    PENDING
+    APPROVED
+    REJECTED
+}
+
+type EventParticipationRequest {
+    id: String!
+    event: Event!
+    company: Company!
+    status: ParticipationRequestStatus!
+    message: String
+    adminNote: String
+    reviewedBy: Admin
+    reviewedAt: Date
+    createdAt: Date!
+    updatedAt: Date!
+}
+
+type PaginateParticipationRequest {
+    rows: [EventParticipationRequest]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+input ParticipationRequestFilter {
+    eventId: String
+    companyId: String
+    status: ParticipationRequestStatus
+}
+
+input RequestParticipationInput {
+    eventId: String!
+    message: String
+}
+
+input ReviewParticipationInput {
+    requestId: String!
+    status: ParticipationRequestStatus!
+    adminNote: String
+}
+
+# Event User Reservation Types
+enum ReservationStatus {
+    CONFIRMED
+    CANCELLED
+}
+
+type EventUserReservation {
+    id: String!
+    event: Event!
+    user: User!
+    companyStand: Company!
+    status: ReservationStatus!
+    notes: String
+    createdAt: Date!
+    updatedAt: Date!
+}
+
+type PaginateUserReservation {
+    rows: [EventUserReservation]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+input UserReservationFilter {
+    eventId: String
+    userId: String
+    companyStandId: String
+    status: ReservationStatus
+}
+
+input CreateReservationInput {
+    eventId: String!
+    companyStandId: String!
+    notes: String
+}
+
+type ParticipationStatusResponse {
+    isOwner: Boolean!
+    isParticipating: Boolean!
+    hasRequestedParticipation: Boolean!
+    participationRequestStatus: ParticipationRequestStatus
+    userReservation: EventUserReservation
 }

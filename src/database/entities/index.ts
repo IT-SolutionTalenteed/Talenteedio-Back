@@ -37,3 +37,5 @@ export { CVTransmissionLog, RECIPIENT_TYPE, TRANSMISSION_METHOD } from './CVTran
 export { ApplicationFeedback, REVIEWER_TYPE } from './ApplicationFeedback';
 export { Pricing } from './Pricing';
 export { Favorite, FAVORITE_TYPE } from './Favorite';
+export { EventParticipationRequest, PARTICIPATION_REQUEST_STATUS } from './EventParticipationRequest';
+export { EventUserReservation, RESERVATION_STATUS } from './EventUserReservation';
