@@ -104,6 +104,18 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
                 return;
             }
 
+            // Vérifier si c'est une entreprise avec statut PENDING
+            if (user.company) {
+                const company = await Company.findOne({ where: { user: { id: user.id } } });
+                if (company && company.status === 'pending') {
+                    res.status(403).json({ 
+                        msg: 'Votre compte entreprise est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
+                        pending: true 
+                    });
+                    return;
+                }
+            }
+
             // test a matching password
             const userWithPassword = await User.findOne({ where: { email }, select: ['password'] });
 

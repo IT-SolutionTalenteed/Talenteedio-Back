@@ -27,6 +27,7 @@ type Mutation {
     requestEventParticipation(input: RequestParticipationInput): EventParticipationRequest
     reviewParticipationRequest(input: ReviewParticipationInput): EventParticipationRequest
     createEventReservation(input: CreateReservationInput): EventUserReservation
+    createMultipleEventReservations(input: CreateMultipleReservationsInput): [EventUserReservation]
     cancelEventReservation(reservationId: String!): EventUserReservation
 }
 
@@ -59,6 +60,7 @@ input CreateEventInput {
     endTime: String
     location: String
     maxParticipants: Int
+    image: String
     category: UpdateCategoryInput
     companies: [UpdateCompanyInput]
 }
@@ -75,6 +77,7 @@ input UpdateEventInput {
     endTime: String
     location: String
     maxParticipants: Int
+    image: String
     category: UpdateCategoryInput
     companies: [UpdateCompanyInput]
 }
@@ -98,6 +101,7 @@ type Event {
     endTime: String
     location: String
     maxParticipants: Int
+    image: String
     admin: Admin
     company: Company
     category: Category
@@ -195,10 +199,17 @@ input CreateReservationInput {
     notes: String
 }
 
+input CreateMultipleReservationsInput {
+    eventId: String!
+    companyStandIds: [String!]!
+    notes: String
+}
+
 type ParticipationStatusResponse {
     isOwner: Boolean!
     isParticipating: Boolean!
     hasRequestedParticipation: Boolean!
     participationRequestStatus: ParticipationRequestStatus
     userReservation: EventUserReservation
+    userReservations: [EventUserReservation]
 }

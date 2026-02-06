@@ -175,6 +175,7 @@ const resolver = {
                     hasRequestedParticipation: false,
                     participationRequestStatus: null,
                     userReservation: null,
+                    userReservations: [],
                 };
 
                 // Vérifier si l'utilisateur est propriétaire de l'événement
@@ -203,9 +204,9 @@ const resolver = {
                     }
                 }
 
-                // Vérifier s'il y a une réservation utilisateur
+                // Vérifier s'il y a des réservations utilisateur
                 if (!user.company && !user.admin) {
-                    const reservation = await EventUserReservation.findOne({
+                    const reservations = await EventUserReservation.find({
                         where: {
                             event: { id: args.eventId },
                             user: { id: user.id },
@@ -214,8 +215,10 @@ const resolver = {
                         relations: ['companyStand', 'companyStand.logo'],
                     });
 
-                    if (reservation) {
-                        response.userReservation = reservation;
+                    if (reservations && reservations.length > 0) {
+                        response.userReservations = reservations;
+                        // Pour compatibilité avec l'ancien code
+                        response.userReservation = reservations[0];
                     }
                 }
 
@@ -596,17 +599,18 @@ const resolver = {
                     });
                 }
 
-                // Vérifier s'il y a déjà une réservation active
+                // Vérifier s'il y a déjà une réservation active pour ce stand
                 const existingReservation = await EventUserReservation.findOne({
                     where: {
                         event: { id: args.input.eventId },
                         user: { id: user.id },
+                        companyStand: { id: args.input.companyStandId },
                         status: RESERVATION_STATUS.CONFIRMED,
                     },
                 });
 
                 if (existingReservation) {
-                    throw createGraphQLError('You already have an active reservation for this event', { 
+                    throw createGraphQLError('You already have an active reservation for this company stand', { 
                         extensions: { statusCode: 400, statusText: BAD_REQUEST } 
                     });
                 }
@@ -628,6 +632,98 @@ const resolver = {
                 });
 
                 return savedReservation!;
+            } catch (error: any) {
+                throw returnError(error);
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        createMultipleEventReservations: async (_: any, args: { input: { eventId: string; companyStandIds: string[]; notes?: string } }, context: any): Promise<EventUserReservation[]> => {
+            try {
+                const user = context.req.session.user as User;
+
+                // Vérifier que l'utilisateur n'est pas une company ou admin
+                if (user.company || user.admin) {
+                    throw createGraphQLError('Companies and admins cannot make reservations', { 
+                        extensions: { statusCode: 403, statusText: FORBIDDEN } 
+                    });
+                }
+
+                if (!args.input.companyStandIds || args.input.companyStandIds.length === 0) {
+                    throw createGraphQLError('At least one company stand must be selected', { 
+                        extensions: { statusCode: 400, statusText: BAD_REQUEST } 
+                    });
+                }
+
+                const event = await Event.findOne({
+                    where: { id: args.input.eventId },
+                    relations: ['companies'],
+                });
+
+                if (!event) {
+                    throw createGraphQLError('Event not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                }
+
+                const createdReservations: EventUserReservation[] = [];
+
+                for (const companyStandId of args.input.companyStandIds) {
+                    // Vérifier que la company participe à l'événement
+                    const companyStand = await Company.findOne({
+                        where: { id: companyStandId },
+                    });
+
+                    if (!companyStand) {
+                        console.warn(`Company ${companyStandId} not found, skipping`);
+                        continue;
+                    }
+
+                    if (!event.companies?.some(c => c.id === companyStand.id)) {
+                        console.warn(`Company ${companyStandId} is not participating in this event, skipping`);
+                        continue;
+                    }
+
+                    // Vérifier s'il y a déjà une réservation active pour ce stand
+                    const existingReservation = await EventUserReservation.findOne({
+                        where: {
+                            event: { id: args.input.eventId },
+                            user: { id: user.id },
+                            companyStand: { id: companyStandId },
+                            status: RESERVATION_STATUS.CONFIRMED,
+                        },
+                    });
+
+                    if (existingReservation) {
+                        console.warn(`Reservation already exists for company ${companyStandId}, skipping`);
+                        continue;
+                    }
+
+                    const newReservation = Object.assign(new EventUserReservation(), {
+                        event,
+                        user,
+                        companyStand,
+                        notes: args.input.notes,
+                        status: RESERVATION_STATUS.CONFIRMED,
+                    });
+
+                    await newReservation.save();
+
+                    // Recharger avec les relations
+                    const savedReservation = await EventUserReservation.findOne({
+                        where: { id: newReservation.id },
+                        relations: ['event', 'user', 'companyStand.user', 'companyStand.logo'],
+                    });
+
+                    if (savedReservation) {
+                        createdReservations.push(savedReservation);
+                    }
+                }
+
+                if (createdReservations.length === 0) {
+                    throw createGraphQLError('No reservations were created. Companies may already be reserved or invalid.', { 
+                        extensions: { statusCode: 400, statusText: BAD_REQUEST } 
+                    });
+                }
+
+                return createdReservations;
             } catch (error: any) {
                 throw returnError(error);
             }
@@ -672,6 +768,7 @@ const resolversComposition = {
     'Mutation.requestEventParticipation': [guard(['company'])],
     'Mutation.reviewParticipationRequest': [guard(['admin'])],
     'Mutation.createEventReservation': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
+    'Mutation.createMultipleEventReservations': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
     'Mutation.cancelEventReservation': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club', 'admin'])],
     'Query.getEventParticipationRequests': [guard(['admin', 'company'])],
     'Query.getEventUserReservations': [guard(['admin', 'talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],

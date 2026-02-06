@@ -20,6 +20,8 @@ import joinUsSchema from './joinUs';
 import adSchema from './ad';
 import pricingSchema from './pricing';
 import favoriteSchema from './favorite';
+import companyPlanSchema from './company-plan';
+import companySchema from './company';
 
 export {
     mailerSchema,
@@ -44,4 +46,6 @@ export {
     adSchema,
     pricingSchema,
     favoriteSchema,
+    companyPlanSchema,
+    companySchema,
 };

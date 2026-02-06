@@ -1,0 +1,24 @@
+input CompanyRegistrationInput {
+  companyName: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  phone: String!
+  address: String!
+  city: String!
+  postalCode: String!
+  country: String!
+  website: String
+  description: String
+  planId: String!
+}
+
+type CompanyRegistrationResponse {
+  success: Boolean!
+  message: String!
+  companyId: String
+}
+
+type Mutation {
+  registerCompany(input: CompanyRegistrationInput!): CompanyRegistrationResponse!
+}

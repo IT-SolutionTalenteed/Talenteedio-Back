@@ -3,4 +3,5 @@ export enum STATUS {
     DRAFT = 'draft',
     BLOCKED = 'blocked',
     IN_REVIEW = 'in_review',
+    PENDING = 'pending',
 }

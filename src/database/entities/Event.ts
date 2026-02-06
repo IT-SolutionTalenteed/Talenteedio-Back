@@ -6,6 +6,7 @@ enum STATUS {
     DRAFT = 'draft',
     BLOCKED = 'blocked',
     IN_REVIEW = 'in_review',
+    PENDING = 'pending',
 }
 
 @Entity()
@@ -46,6 +47,9 @@ export class Event extends BaseEntity {
 
     @Column({ type: 'int', nullable: true })
     maxParticipants: number; // Nombre maximum de participants
+
+    @Column({ nullable: true })
+    image: string; // URL de l'image de l'événement
 
     @ManyToOne(() => Admin, (admin) => admin.events)
     admin: Admin;
