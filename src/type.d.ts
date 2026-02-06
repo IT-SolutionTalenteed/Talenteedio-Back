@@ -79,11 +79,19 @@ export interface UpdateJobTypeInput extends UpdateSkillInput {}
 
 export interface CreateCategoryInput extends CreateSkillInput {
     slug: string;
+    subtitle?: string;
+    description?: string;
+    image?: string;
+    faq?: { question: string; answer: string }[];
     model: MODEL;
 }
 
 export interface UpdateCategoryInput extends UpdateSkillInput {
     slug?: string;
+    subtitle?: string;
+    description?: string;
+    image?: string;
+    faq?: { question: string; answer: string }[];
     model?: MODEL;
 }
 

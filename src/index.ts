@@ -16,6 +16,7 @@ import bookingValidationRouter from './routes/booking-validation.routes';
 import walletRouter from './routes/wallet.routes';
 import creneauxRouter from './routes/creneaux.routes';
 import publicRouter from './routes/public.routes';
+import uploadRouter from './routes/upload.routes';
 
 import { initSentry } from './sentry';
 
@@ -101,6 +102,9 @@ const serve = async () => {
 
         // Public routes (sans authentification)
         app.use('/api/public', publicRouter);
+
+        // Upload route
+        app.use('/api', uploadRouter);
 
         // GraphQL routes
         app.use('/api', graphQLRouter);

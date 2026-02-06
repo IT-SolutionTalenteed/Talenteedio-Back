@@ -33,6 +33,10 @@ type DeleteCategoryResponse {
 input CreateCategoryInput {
     name: String!
     slug: String!
+    subtitle: String
+    description: String
+    image: String
+    faq: [FAQInput]
     status: Status
     model: Model!
 }
@@ -41,8 +45,22 @@ input UpdateCategoryInput {
     id: String!
     name: String
     slug: String
+    subtitle: String
+    description: String
+    image: String
+    faq: [FAQInput]
     status: Status
     model: Model
+}
+
+input FAQInput {
+    question: String!
+    answer: String!
+}
+
+type FAQ {
+    question: String!
+    answer: String!
 }
 
 type PaginateCategory {
@@ -56,6 +74,10 @@ type Category {
     id: String!
     name: String!
     slug: String!
+    subtitle: String
+    description: String
+    image: String
+    faq: [FAQ]
     status: Status!
     model: Model!
 }

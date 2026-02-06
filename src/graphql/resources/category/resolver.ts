@@ -91,6 +91,10 @@ const resolver = {
                 category.name = args.input.name;
                 category.model = args.input.model;
                 category.slug = args.input.slug;
+                if (args.input.subtitle) category.subtitle = args.input.subtitle;
+                if (args.input.description) category.description = args.input.description;
+                if (args.input.image) category.image = args.input.image;
+                if (args.input.faq) category.faq = args.input.faq;
                 if (args.input.status) {
                     category.status = args.input.status;
                 }
@@ -118,6 +122,10 @@ const resolver = {
                     if (args.input.status) category.status = args.input.status;
                     if (args.input.slug) category.slug = args.input.slug;
                     if (args.input.model) category.model = args.input.model;
+                    if (args.input.subtitle !== undefined) category.subtitle = args.input.subtitle;
+                    if (args.input.description !== undefined) category.description = args.input.description;
+                    if (args.input.image !== undefined) category.image = args.input.image;
+                    if (args.input.faq !== undefined) category.faq = args.input.faq;
                     await categoryRepository.save(category);
                     return category;
                 }

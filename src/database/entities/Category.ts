@@ -26,6 +26,18 @@ export class Category extends BaseEntity {
     @Column()
     slug: string;
 
+    @Column({ nullable: true })
+    subtitle: string;
+
+    @Column({ type: 'text', nullable: true })
+    description: string;
+
+    @Column({ nullable: true })
+    image: string;
+
+    @Column({ type: 'json', nullable: true })
+    faq: { question: string; answer: string }[];
+
     @Column({
         type: 'enum',
         enum: STATUS,
