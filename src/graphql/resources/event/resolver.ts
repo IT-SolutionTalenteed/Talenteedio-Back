@@ -12,7 +12,7 @@ import companyGuard from '../../middleware/company-guard';
 
 import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 
-const relations = ['admin.user', 'company', 'category', 'companies'];
+const relations = ['admin.user', 'company', 'category', 'companies', 'companies.logo'];
 
 const resolver = {
     Query: {
