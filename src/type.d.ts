@@ -83,6 +83,10 @@ export interface CreateCategoryInput extends CreateSkillInput {
     description?: string;
     image?: string;
     faq?: { question: string; answer: string }[];
+    gallery?: string[];
+    testimonials?: { avatar: string; fullname: string; job: string; avis: string }[];
+    video?: string;
+    detailList?: string[];
     model: MODEL;
 }
 
@@ -92,6 +96,10 @@ export interface UpdateCategoryInput extends UpdateSkillInput {
     description?: string;
     image?: string;
     faq?: { question: string; answer: string }[];
+    gallery?: string[];
+    testimonials?: { avatar: string; fullname: string; job: string; avis: string }[];
+    video?: string;
+    detailList?: string[];
     model?: MODEL;
 }
 

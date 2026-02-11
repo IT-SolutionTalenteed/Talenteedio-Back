@@ -37,6 +37,10 @@ input CreateCategoryInput {
     description: String
     image: String
     faq: [FAQInput]
+    gallery: [String]
+    testimonials: [TestimonialInput]
+    video: String
+    detailList: [String]
     status: Status
     model: Model!
 }
@@ -49,6 +53,10 @@ input UpdateCategoryInput {
     description: String
     image: String
     faq: [FAQInput]
+    gallery: [String]
+    testimonials: [TestimonialInput]
+    video: String
+    detailList: [String]
     status: Status
     model: Model
 }
@@ -61,6 +69,20 @@ input FAQInput {
 type FAQ {
     question: String!
     answer: String!
+}
+
+input TestimonialInput {
+    avatar: String!
+    fullname: String!
+    job: String!
+    avis: String!
+}
+
+type CategoryTestimonial {
+    avatar: String!
+    fullname: String!
+    job: String!
+    avis: String!
 }
 
 type PaginateCategory {
@@ -78,6 +100,10 @@ type Category {
     description: String
     image: String
     faq: [FAQ]
+    gallery: [String]
+    testimonials: [CategoryTestimonial]
+    video: String
+    detailList: [String]
     status: Status!
     model: Model!
 }

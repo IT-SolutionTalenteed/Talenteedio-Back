@@ -20,20 +20,24 @@ router.post('/upload', async (req: Request, res: Response) => {
 
         console.log('File info:', { name, type, dataLength: data?.length });
 
-        // Validate file type (images only)
-        if (!type || !type.startsWith('image/')) {
+        // Validate file type (images and videos)
+        const isImage = type && type.startsWith('image/');
+        const isVideo = type && type.startsWith('video/');
+        
+        if (!isImage && !isVideo) {
             console.error('Invalid file type:', type);
-            return res.status(400).json({ error: 'Only image files are allowed' });
+            return res.status(400).json({ error: 'Only image and video files are allowed' });
         }
 
-        // Validate file size (max 5MB)
-        const maxSize = 5 * 1024 * 1024;
+        // Validate file size (5MB for images, 50MB for videos)
+        const maxSize = isVideo ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
         const buffer = Buffer.from(data, 'base64');
-        console.log('Buffer size:', buffer.length);
+        console.log('Buffer size:', buffer.length, 'Max size:', maxSize);
         
         if (buffer.length > maxSize) {
+            const maxSizeMB = isVideo ? '50MB' : '5MB';
             console.error('File too large:', buffer.length);
-            return res.status(400).json({ error: 'File size exceeds 5MB limit' });
+            return res.status(400).json({ error: `File size exceeds ${maxSizeMB} limit` });
         }
 
         // Generate unique filename

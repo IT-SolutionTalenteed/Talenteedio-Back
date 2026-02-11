@@ -95,6 +95,10 @@ const resolver = {
                 if (args.input.description) category.description = args.input.description;
                 if (args.input.image) category.image = args.input.image;
                 if (args.input.faq) category.faq = args.input.faq;
+                if (args.input.gallery) category.gallery = args.input.gallery;
+                if (args.input.testimonials) category.testimonials = args.input.testimonials;
+                if (args.input.video) category.video = args.input.video;
+                if (args.input.detailList) category.detailList = args.input.detailList;
                 if (args.input.status) {
                     category.status = args.input.status;
                 }
@@ -126,6 +130,10 @@ const resolver = {
                     if (args.input.description !== undefined) category.description = args.input.description;
                     if (args.input.image !== undefined) category.image = args.input.image;
                     if (args.input.faq !== undefined) category.faq = args.input.faq;
+                    if (args.input.gallery !== undefined) category.gallery = args.input.gallery;
+                    if (args.input.testimonials !== undefined) category.testimonials = args.input.testimonials;
+                    if (args.input.video !== undefined) category.video = args.input.video;
+                    if (args.input.detailList !== undefined) category.detailList = args.input.detailList;
                     await categoryRepository.save(category);
                     return category;
                 }
