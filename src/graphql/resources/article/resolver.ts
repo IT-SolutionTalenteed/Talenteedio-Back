@@ -121,6 +121,11 @@ const resolver = {
                     throw createGraphQLError('Public content is required', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
                 }
 
+                // Set default value for publicContent if not provided
+                if (!newArticle.publicContent) {
+                    newArticle.publicContent = '';
+                }
+
                 const user = context.req.session.user as User;
 
                 newArticle.admin = user.admin;
@@ -165,6 +170,11 @@ const resolver = {
                     }
                     if (args.input.isPremium && !args.input.publicContent) {
                         throw createGraphQLError('Public content is required', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
+                    }
+
+                    // Set default value for publicContent if not provided
+                    if (args.input.publicContent === undefined) {
+                        args.input.publicContent = '';
                     }
 
                     if (Array.isArray(args.input.categories) && args.input.categories.length) {
