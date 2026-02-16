@@ -551,7 +551,11 @@ export default {
             }
 
             const oldStatus = appointment.status;
-            appointment.status = args.status.toUpperCase() as AppointmentStatus;
+            console.log(`[updateAppointmentStatus] Old status: "${oldStatus}", New status: "${args.status}"`);
+            
+            // Normaliser le nouveau statut en minuscules pour correspondre à l'enum
+            const normalizedStatus = args.status.toLowerCase();
+            appointment.status = normalizedStatus as AppointmentStatus;
             
             if (args.companyNotes) {
                 appointment.companyNotes = args.companyNotes;
@@ -564,7 +568,15 @@ export default {
             await appointment.save();
 
             // Envoyer les notifications par email si le statut change vers confirmé ou rejeté
-            if (oldStatus === AppointmentStatus.PENDING && (appointment.status === AppointmentStatus.CONFIRMED || appointment.status === AppointmentStatus.REJECTED)) {
+            const wasPending = oldStatus === AppointmentStatus.PENDING;
+            const isConfirmedOrRejected = 
+                appointment.status === AppointmentStatus.CONFIRMED || 
+                appointment.status === AppointmentStatus.REJECTED;
+            
+            console.log(`[updateAppointmentStatus] Was pending: ${wasPending}, Is confirmed/rejected: ${isConfirmedOrRejected}`);
+            console.log(`[updateAppointmentStatus] Comparing: "${appointment.status}" with CONFIRMED="${AppointmentStatus.CONFIRMED}" and REJECTED="${AppointmentStatus.REJECTED}"`);
+            
+            if (wasPending && isConfirmedOrRejected) {
                 try {
                     const { sendAppointmentStatusNotification } = await import('../../../helpers/mailer/send-appointment-status-notification');
                     
