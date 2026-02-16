@@ -3,7 +3,7 @@ import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 
-import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission } from '../../../database/entities';
+import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
 import { getResources, returnError } from '../../../helpers/graphql';
 
@@ -745,7 +745,44 @@ const resolver = {
                         await queryRunner.manager.save(contact);
                     }
 
-                    company = Object.assign(company, { ...args.input, contact: undefined }) as Company;
+                    // Gérer les relations (category, user, permission, logo)
+                    const updateData: any = { ...args.input, contact: undefined };
+                    
+                    // Charger la catégorie si fournie
+                    if (args.input.category?.id) {
+                        const category = await queryRunner.manager.findOne(Category, { where: { id: args.input.category.id } });
+                        if (category) {
+                            updateData.category = category;
+                        }
+                    }
+                    
+                    // Charger l'utilisateur si fourni (admin uniquement)
+                    if (args.input.user?.id && user.admin) {
+                        const companyUser = await queryRunner.manager.findOne(User, { where: { id: args.input.user.id } });
+                        if (companyUser) {
+                            updateData.user = companyUser;
+                        }
+                    }
+                    
+                    // Charger la permission si fournie (admin uniquement)
+                    if (args.input.permission?.id && user.admin) {
+                        const permission = await queryRunner.manager.findOne(Permission, { where: { id: args.input.permission.id } });
+                        if (permission) {
+                            updateData.permission = permission;
+                        }
+                    }
+                    
+                    // Charger le logo si fourni
+                    if (args.input.logo?.id) {
+                        const logo = await queryRunner.manager.findOne(Media, { where: { id: args.input.logo.id } });
+                        if (logo) {
+                            updateData.logo = logo;
+                        }
+                    } else if (args.input.logo === null) {
+                        updateData.logo = null;
+                    }
+
+                    company = Object.assign(company, updateData) as Company;
                     await queryRunner.manager.save(company);
 
                     await queryRunner.commitTransaction();

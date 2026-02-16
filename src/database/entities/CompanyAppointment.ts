@@ -52,12 +52,18 @@ export class CompanyAppointment extends BaseEntity {
     @Column({ type: 'text', nullable: true })
     companyNotes: string; // Notes de l'entreprise
 
+    @Column({ type: 'text', nullable: true })
+    rejectionReason: string; // Raison du rejet
+
     @Column({
         type: 'enum',
         enum: AppointmentStatus,
         default: AppointmentStatus.PENDING,
     })
     status: AppointmentStatus;
+
+    @Column({ type: 'boolean', default: false })
+    reminderSent: boolean; // Rappel envoyé 30 min avant
 
     @CreateDateColumn()
     createdAt: Date;

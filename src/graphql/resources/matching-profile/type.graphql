@@ -103,7 +103,9 @@ type CompanyAppointment {
     timezone: String!
     message: String
     companyNotes: String
+    rejectionReason: String
     status: String!
+    reminderSent: Boolean!
     createdAt: String!
     updatedAt: String!
 }
@@ -154,4 +156,11 @@ extend type Mutation {
     toggleCompanySelection(matchId: ID!, isSelected: Boolean!): CompanyMatch!
     createCompanyAppointment(input: CompanyAppointmentInput!): CompanyAppointment!
     cancelAppointment(appointmentId: ID!): CompanyAppointment!
+    updateAppointmentStatus(appointmentId: ID!, status: String!, companyNotes: String, rejectionReason: String): CompanyAppointment!
+}
+
+extend type Query {
+    getAllAppointments: [CompanyAppointment!]!
+    getAppointmentById(id: ID!): CompanyAppointment
+    getMyCompanyAppointments: [CompanyAppointment!]!
 }

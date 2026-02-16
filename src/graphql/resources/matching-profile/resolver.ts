@@ -116,6 +116,74 @@ export default {
                 order: { name: 'ASC' },
             });
         },
+
+        // Récupérer tous les rendez-vous (pour l'admin)
+        getAllAppointments: async (_: any, __: any, context: any): Promise<CompanyAppointment[]> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            // Vérifier que l'utilisateur est admin
+            // TODO: Ajouter une vérification de rôle appropriée
+            
+            return await CompanyAppointment.find({
+                relations: ['company', 'company.logo', 'company.contact', 'user', 'matchingProfile'],
+                order: { createdAt: 'DESC' },
+            });
+        },
+
+        // Récupérer un rendez-vous par ID
+        getAppointmentById: async (_: any, args: { id: string }, context: any): Promise<CompanyAppointment | null> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            return await CompanyAppointment.findOne({
+                where: { id: args.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user', 'matchingProfile'],
+            });
+        },
+
+        // Récupérer les rendez-vous de l'entreprise connectée
+        getMyCompanyAppointments: async (_: any, __: any, context: any): Promise<CompanyAppointment[]> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            console.log('[getMyCompanyAppointments] User ID:', user.id);
+
+            // Charger l'utilisateur avec sa company
+            const userWithCompany = await User.findOne({
+                where: { id: user.id },
+                relations: ['company'],
+            });
+
+            console.log('[getMyCompanyAppointments] User has company:', !!userWithCompany?.company);
+
+            // Vérifier que l'utilisateur a une entreprise
+            if (!userWithCompany || !userWithCompany.company) {
+                throw createGraphQLError('User is not associated with a company', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+            }
+
+            console.log('[getMyCompanyAppointments] Company ID:', userWithCompany.company.id);
+
+            const appointments = await CompanyAppointment.find({
+                where: { companyId: userWithCompany.company.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user', 'matchingProfile'],
+                order: { createdAt: 'DESC' },
+            });
+
+            console.log('[getMyCompanyAppointments] Found appointments:', appointments.length);
+            if (appointments.length > 0) {
+                console.log('[getMyCompanyAppointments] First appointment status:', appointments[0].status);
+                console.log('[getMyCompanyAppointments] First appointment createdAt:', appointments[0].createdAt);
+            }
+
+            return appointments;
+        },
     },
 
     Mutation: {
@@ -368,6 +436,7 @@ export default {
             // Vérifier que le profil appartient à l'utilisateur
             const profile = await MatchingProfile.findOne({
                 where: { id: matchingProfileId, userId: user.id },
+                relations: ['user'],
             });
 
             if (!profile) {
@@ -375,7 +444,10 @@ export default {
             }
 
             // Vérifier que l'entreprise existe
-            const company = await Company.findOne({ where: { id: companyId } });
+            const company = await Company.findOne({ 
+                where: { id: companyId },
+                relations: ['contact']
+            });
             if (!company) {
                 throw createGraphQLError('Company not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
             }
@@ -395,11 +467,32 @@ export default {
 
             const savedAppointment = await CompanyAppointment.findOne({
                 where: { id: appointment.id },
-                relations: ['company', 'company.logo', 'company.contact'],
+                relations: ['company', 'company.logo', 'company.contact', 'user'],
             });
 
             if (!savedAppointment) {
                 throw createGraphQLError('Failed to save appointment', { extensions: { statusCode: 500 } });
+            }
+
+            // Envoyer les notifications par email
+            try {
+                const { sendAppointmentNotification } = await import('../../../helpers/mailer/send-appointment-notification');
+                
+                await sendAppointmentNotification({
+                    candidateName: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.email,
+                    candidateEmail: user.email,
+                    companyName: company.company_name,
+                    companyEmail: company.contact?.email || process.env.ADMIN_EMAIL || 'admin@talenteed.io',
+                    adminEmail: process.env.ADMIN_EMAIL || 'admin@talenteed.io',
+                    appointmentDate: appointmentDate,
+                    appointmentTime: appointmentTime,
+                    timezone: timezone || 'Europe/Paris',
+                    message: message,
+                    appointmentId: savedAppointment.id,
+                });
+            } catch (error) {
+                console.error('Error sending appointment notification:', error);
+                // Ne pas faire échouer la création si l'email échoue
             }
 
             return savedAppointment;
@@ -426,6 +519,120 @@ export default {
             const updatedAppointment = await CompanyAppointment.findOne({
                 where: { id: appointment.id },
                 relations: ['company', 'company.logo', 'company.contact'],
+            });
+
+            if (!updatedAppointment) {
+                throw createGraphQLError('Failed to update appointment', { extensions: { statusCode: 500 } });
+            }
+
+            return updatedAppointment;
+        },
+
+        // Mettre à jour le statut d'un rendez-vous (pour l'admin/entreprise)
+        updateAppointmentStatus: async (_: any, args: { appointmentId: string; status: string; companyNotes?: string; rejectionReason?: string }, context: any): Promise<CompanyAppointment> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            const appointment = await CompanyAppointment.findOne({
+                where: { id: args.appointmentId },
+                relations: ['company', 'company.logo', 'company.contact', 'user'],
+            });
+
+            if (!appointment) {
+                throw createGraphQLError('Appointment not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+            }
+
+            // Valider le statut
+            const validStatuses = ['pending', 'confirmed', 'rejected', 'cancelled', 'completed'];
+            if (!validStatuses.includes(args.status.toLowerCase())) {
+                throw createGraphQLError('Invalid status', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
+            }
+
+            const oldStatus = appointment.status;
+            appointment.status = args.status.toUpperCase() as AppointmentStatus;
+            
+            if (args.companyNotes) {
+                appointment.companyNotes = args.companyNotes;
+            }
+
+            if (args.rejectionReason) {
+                appointment.rejectionReason = args.rejectionReason;
+            }
+
+            await appointment.save();
+
+            // Envoyer les notifications par email si le statut change vers confirmé ou rejeté
+            if (oldStatus === AppointmentStatus.PENDING && (appointment.status === AppointmentStatus.CONFIRMED || appointment.status === AppointmentStatus.REJECTED)) {
+                try {
+                    const { sendAppointmentStatusNotification } = await import('../../../helpers/mailer/send-appointment-status-notification');
+                    
+                    const appointmentDate = new Date(appointment.appointmentDate);
+                    const formattedDate = appointmentDate.toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                    });
+
+                    // Envoyer l'email au candidat
+                    await sendAppointmentStatusNotification({
+                        candidateName: `${appointment.user.firstname || ''} ${appointment.user.lastname || ''}`.trim() || appointment.user.email,
+                        candidateEmail: appointment.user.email,
+                        companyName: appointment.company.company_name,
+                        companyEmail: appointment.company.contact?.email,
+                        appointmentDate: formattedDate,
+                        appointmentTime: appointment.appointmentTime,
+                        timezone: appointment.timezone,
+                        status: appointment.status === AppointmentStatus.CONFIRMED ? 'confirmed' : 'rejected',
+                        companyNotes: appointment.companyNotes,
+                        rejectionReason: appointment.rejectionReason,
+                    });
+
+                    console.log(`✅ Appointment status notification sent to ${appointment.user.email}`);
+
+                    // Envoyer une notification à l'admin
+                    const adminEmail = process.env.ADMIN_EMAIL || 'admin@talenteed.io';
+                    const statusText = appointment.status === AppointmentStatus.CONFIRMED ? 'confirmé' : 'rejeté';
+                    const statusColor = appointment.status === AppointmentStatus.CONFIRMED ? '#28a745' : '#dc3545';
+                    
+                    const adminSubject = `Entretien ${statusText} - ${appointment.company.company_name} / ${appointment.user.firstname || ''} ${appointment.user.lastname || ''}`;
+                    const adminHtml = `
+                        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2 style="color: ${statusColor};">Entretien ${statusText}</h2>
+                            <p>L'entreprise <strong>${appointment.company.company_name}</strong> a ${statusText} l'entretien avec le candidat.</p>
+                            
+                            <div style="background-color: #f5f5f5; padding: 20px; border-radius: 5px; margin: 20px 0; border-left: 4px solid ${statusColor};">
+                                <h3 style="margin-top: 0;">Détails</h3>
+                                <p><strong>Candidat:</strong> ${appointment.user.firstname || ''} ${appointment.user.lastname || ''} (${appointment.user.email})</p>
+                                <p><strong>Entreprise:</strong> ${appointment.company.company_name}</p>
+                                <p><strong>Date:</strong> ${formattedDate}</p>
+                                <p><strong>Heure:</strong> ${appointment.appointmentTime} (${appointment.timezone})</p>
+                                ${appointment.companyNotes ? `<p><strong>Notes:</strong><br/>${appointment.companyNotes}</p>` : ''}
+                                ${appointment.rejectionReason ? `<p><strong>Raison du rejet:</strong><br/>${appointment.rejectionReason}</p>` : ''}
+                            </div>
+                        </div>
+                    `;
+
+                    const transporter = (await import('../../../helpers/mailer')).default;
+                    await transporter.sendMail({
+                        from: process.env.MAILUSER,
+                        to: adminEmail,
+                        subject: adminSubject,
+                        html: adminHtml,
+                    });
+
+                    console.log(`✅ Admin notification sent to ${adminEmail}`);
+                } catch (error) {
+                    console.error('Error sending appointment status notification:', error);
+                    // Ne pas faire échouer la mise à jour si l'email échoue
+                }
+            }
+
+            const updatedAppointment = await CompanyAppointment.findOne({
+                where: { id: appointment.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user'],
             });
 
             if (!updatedAppointment) {
