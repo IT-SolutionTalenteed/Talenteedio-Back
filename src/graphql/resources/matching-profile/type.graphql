@@ -1,0 +1,157 @@
+scalar Date
+
+type User {
+    id: ID!
+    email: String!
+    firstname: String
+    lastname: String
+}
+
+type Category {
+    id: ID!
+    name: String!
+}
+
+type Company {
+    id: ID!
+    company_name: String!
+    logo: Media
+    category: Category
+    contact: Contact
+}
+
+type Media {
+    id: ID!
+    fileUrl: String!
+    fileType: String!
+    fileName: String!
+}
+
+type Contact {
+    id: ID!
+    email: String
+    phoneNumber: String!
+    address: Address
+}
+
+type Address {
+    id: ID!
+    city: String
+    country: String
+}
+
+type Query {
+    _empty: String
+}
+
+type Mutation {
+    _empty: String
+}
+
+type MatchingProfile {
+    id: ID!
+    userId: String!
+    user: User
+    title: String!
+    cv: Media
+    cvText: String
+    interests: [String!]
+    skills: [String!]
+    currentSector: Category
+    targetSectorIds: [String!]
+    status: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type CompanyMatch {
+    id: ID!
+    matchingProfileId: String!
+    matchingProfile: MatchingProfile
+    companyId: String!
+    company: Company
+    matchScore: Float!
+    matchDetails: MatchDetails
+    isSelected: Boolean!
+    createdAt: String!
+}
+
+type MatchDetails {
+    overall_match_percentage: Float!
+    criteria_scores: [MatchCriterion!]
+    strengths: [String!]
+    gaps: [String!]
+    recommendation: String
+}
+
+type MatchCriterion {
+    criterion: String!
+    score: Float!
+    explanation: String!
+}
+
+type CompanyAppointment {
+    id: ID!
+    matchingProfileId: String!
+    matchingProfile: MatchingProfile
+    companyId: String!
+    company: Company
+    userId: String!
+    user: User
+    appointmentDate: String!
+    appointmentTime: String!
+    timezone: String!
+    message: String
+    companyNotes: String
+    status: String!
+    createdAt: String!
+    updatedAt: String!
+}
+
+type MatchingResult {
+    success: Boolean!
+    matchCount: Int!
+    message: String!
+}
+
+input MatchingProfileInput {
+    id: ID
+    title: String!
+    cvId: ID
+    interests: [String!]
+    skills: [String!]
+    currentSectorId: ID
+    targetSectorIds: [String!]
+}
+
+input CompanyAppointmentInput {
+    matchingProfileId: ID!
+    companyId: ID!
+    appointmentDate: String!
+    appointmentTime: String!
+    timezone: String
+    message: String
+}
+
+extend type Query {
+    getMyMatchingProfiles: [MatchingProfile!]!
+    getMatchingProfile(id: ID!): MatchingProfile!
+    getMatchedCompanies(matchingProfileId: ID!): [CompanyMatch!]!
+    getProfileAppointments(matchingProfileId: ID!): [CompanyAppointment!]!
+    getAvailableSectors: [Category!]!
+    getAvailableSkills: [Skill!]!
+}
+
+type Skill {
+    id: ID!
+    name: String!
+    status: String!
+}
+
+extend type Mutation {
+    saveMatchingProfile(input: MatchingProfileInput!): MatchingProfile!
+    matchProfileWithCompanies(matchingProfileId: ID!): MatchingResult!
+    toggleCompanySelection(matchId: ID!, isSelected: Boolean!): CompanyMatch!
+    createCompanyAppointment(input: CompanyAppointmentInput!): CompanyAppointment!
+    cancelAppointment(appointmentId: ID!): CompanyAppointment!
+}

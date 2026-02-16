@@ -40,3 +40,6 @@ export { CompanyPlan } from './CompanyPlan';
 export { Favorite, FAVORITE_TYPE } from './Favorite';
 export { EventParticipationRequest, PARTICIPATION_REQUEST_STATUS } from './EventParticipationRequest';
 export { EventUserReservation, RESERVATION_STATUS } from './EventUserReservation';
+export { MatchingProfile, MatchingProfileStatus } from './MatchingProfile';
+export { CompanyMatch } from './CompanyMatch';
+export { CompanyAppointment, AppointmentStatus } from './CompanyAppointment';
