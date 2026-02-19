@@ -13,7 +13,6 @@ import {
     jobTypeSchema,
     categorySchema,
     jobSchema,
-    jobFreelanceSchema,
     testimonialSchema,
     eventSchema,
     partnerSchema,
@@ -47,7 +46,6 @@ graphqlRouter.use('/location', createYoga({ schema: locationSchema, graphqlEndpo
 graphqlRouter.use('/job-type', createYoga({ schema: jobTypeSchema, graphqlEndpoint: '/api/job-type', graphiql }));
 graphqlRouter.use('/category', createYoga({ schema: categorySchema, graphqlEndpoint: '/api/category', graphiql }));
 graphqlRouter.use('/job', createYoga({ schema: jobSchema, graphqlEndpoint: '/api/job', graphiql }));
-graphqlRouter.use('/jobfreelance', createYoga({ schema: jobFreelanceSchema, graphqlEndpoint: '/api/jobfreelance', graphiql }));
 graphqlRouter.use('/testimonial', createYoga({ schema: testimonialSchema, graphqlEndpoint: '/api/testimonial', graphiql }));
 graphqlRouter.use('/event', createYoga({ schema: eventSchema, graphqlEndpoint: '/api/event', graphiql }));
 graphqlRouter.use('/partner', createYoga({ schema: partnerSchema, graphqlEndpoint: '/api/partner', graphiql }));
@@ -78,7 +76,6 @@ graphqlRouter.all('/', (req, res) => {
             '/api/job-type',
             '/api/category',
             '/api/job',
-            '/api/jobfreelance',
             '/api/testimonial',
             '/api/event',
             '/api/partner',

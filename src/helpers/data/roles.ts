@@ -19,8 +19,4 @@ export default [
         name: 'consultant',
         title: 'Consultant',
     },
-    {
-        name: 'freelance',
-        title: 'Freelance',
-    },
 ];

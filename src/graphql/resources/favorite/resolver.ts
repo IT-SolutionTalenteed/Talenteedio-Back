@@ -136,8 +136,7 @@ const resolver = {
                 }
 
                 // Verify item exists
-                if (type === FAVORITE_TYPE.JOB || type === FAVORITE_TYPE.FREELANCE) {
-                    // Les deux types sont des jobs, juste avec des jobType différents
+                if (type === FAVORITE_TYPE.JOB) {
                     const job = await Job.findOne({ where: { id: itemId } });
                     if (!job) {
                         throw createGraphQLError('Job not found', { extensions: { code: NOT_FOUND } });

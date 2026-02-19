@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import generatePassword from 'generate-password';
 
 import AppDataSource from '../../database';
-import { CV, Contact, Media, Referral, Freelance, Consultant, Talent, User, UserSession, Value, Company, Permission, Category, Address } from '../../database/entities';
+import { CV, Contact, Media, Referral, Consultant, Talent, User, UserSession, Value, Company, Permission, Category, Address } from '../../database/entities';
 import { validateEmail } from '../../helpers/utils';
 import transporter from '../../helpers/mailer';
 
@@ -236,7 +236,7 @@ export const register = async (req: Request, res: Response) => {
         // Error handling
         console.log('[REGISTER] Validating fields for role:', role, { email, firstname, lastname, phone, cvId, categoryId });
         if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone
-            || ((role === 'talent' || role === 'freelance') && (values.length === 0 || !cvId))
+            || (role === 'talent' && (values.length === 0 || !cvId))
             || (role === 'consultant' && !cvId)
             || (role === 'company' && !company_name)
         ) {
@@ -258,7 +258,6 @@ export const register = async (req: Request, res: Response) => {
         const roles: Record<RoleRegitration, Class<RoleModel>> = {
             talent: Talent,
             referral: Referral,
-            freelance: Freelance,
             consultant: Consultant,
             company: Company as unknown as Class<RoleModel>,
         };
@@ -300,21 +299,6 @@ export const register = async (req: Request, res: Response) => {
                 if (availabilityDate !== null) newUser.talent.availabilityDate = availabilityDate as any;
                 if (desiredLocation !== null) newUser.talent.desiredLocation = desiredLocation;
                 if (workMode !== null) newUser.talent.workMode = workMode as any;
-            } else if (role === 'freelance') {
-                newUser.freelance = new Freelance();
-                newUser.freelance.values = [];
-                for (const value of values) {
-                    const fetchedValue = await Value.findOneBy({ id: value });
-                    fetchedValue && newUser.freelance.values.push(fetchedValue);
-                }
-                newUser.freelance.contact = new Contact();
-                newUser.freelance.contact.phoneNumber = phone;
-                // Nouveaux champs
-                if (tjm !== null) newUser.freelance.tjm = tjm;
-                if (mobility !== null) newUser.freelance.mobility = mobility;
-                if (availabilityDate !== null) newUser.freelance.availabilityDate = availabilityDate as any;
-                if (desiredLocation !== null) newUser.freelance.desiredLocation = desiredLocation;
-                if (workMode !== null) newUser.freelance.workMode = workMode as any;
             } else if (role === 'consultant') {
                 console.log('[REGISTER] Creating consultant with cvId:', cvId);
                 newUser.consultant = new Consultant();
@@ -415,7 +399,7 @@ export const register = async (req: Request, res: Response) => {
                     newUser.consultant.contact.address = address;
                 }
                 await queryRunner.manager.save(newUser.consultant.contact);
-            } else {
+            } else if (role !== 'company') {
                 await queryRunner.manager.save(newUser[role].contact);
             }
 
@@ -431,9 +415,6 @@ export const register = async (req: Request, res: Response) => {
             } else if (role === 'talent') {
                 newUser.talent.user = newUser;
                 await queryRunner.manager.save(newUser.talent);
-            } else if (role === 'freelance') {
-                newUser.freelance.user = newUser;
-                await queryRunner.manager.save(newUser.freelance);
             } else if (role === 'company') {
                 newUser.company.user = newUser;
                 await queryRunner.manager.save(newUser.company);
@@ -446,10 +427,6 @@ export const register = async (req: Request, res: Response) => {
             if (role === 'talent') {
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.talent = newUser.talent;
-                await queryRunner.manager.save(cv);
-            } else if (role === 'freelance') {
-                const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
-                cv.freelance = newUser.freelance;
                 await queryRunner.manager.save(cv);
             } else if (role === 'consultant' && cvId) {
                 // CV optionnel pour les consultants lors de l'inscription
@@ -1017,32 +994,21 @@ export const googleRegister = async (req: Request, res: Response) => {
         newUser.setPasswd(generateRandomPassword());
 
         // Traiter selon le rôle sélectionné
-        if (role === 'talent' || role === 'freelance') {
-            // Pour les talents/freelances, on a besoin de données supplémentaires
+        if (role === 'talent') {
+            // Pour les talents, on a besoin de données supplémentaires
             if (!additionalData?.values || !additionalData?.phone) {
                 res.status(400).json({ msg: 'Données supplémentaires requises pour ce type de compte.' });
                 return;
             }
 
-            if (role === 'talent') {
-                newUser.talent = new Talent();
-                newUser.talent.values = [];
-                for (const valueId of additionalData.values) {
-                    const value = await Value.findOneBy({ id: valueId });
-                    if (value) newUser.talent.values.push(value);
-                }
-                newUser.talent.contact = new Contact();
-                newUser.talent.contact.phoneNumber = additionalData.phone;
-            } else {
-                newUser.freelance = new Freelance();
-                newUser.freelance.values = [];
-                for (const valueId of additionalData.values) {
-                    const value = await Value.findOneBy({ id: valueId });
-                    if (value) newUser.freelance.values.push(value);
-                }
-                newUser.freelance.contact = new Contact();
-                newUser.freelance.contact.phoneNumber = additionalData.phone;
+            newUser.talent = new Talent();
+            newUser.talent.values = [];
+            for (const valueId of additionalData.values) {
+                const value = await Value.findOneBy({ id: valueId });
+                if (value) newUser.talent.values.push(value);
             }
+            newUser.talent.contact = new Contact();
+            newUser.talent.contact.phoneNumber = additionalData.phone;
         } else if (role === 'company') {
             if (!additionalData?.company_name || !additionalData?.phone) {
                 res.status(400).json({ msg: 'Nom de l\'entreprise et téléphone requis.' });
@@ -1084,10 +1050,6 @@ export const googleRegister = async (req: Request, res: Response) => {
             await newUser.talent.contact.save();
             newUser.talent.user = newUser;
             await newUser.talent.save();
-        } else if (newUser.freelance) {
-            await newUser.freelance.contact.save();
-            newUser.freelance.user = newUser;
-            await newUser.freelance.save();
         } else if (newUser.company) {
             await newUser.company.contact.save();
             newUser.company.user = newUser;

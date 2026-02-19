@@ -1,7 +1,6 @@
 # import PaginationInput from '../../type.graphql'
 # import User from '../user/schema.graphql'
 # import Job from '../job/schema.graphql'
-# import FreelanceJob from '../jobFreelance/schema.graphql'
 
 type Favorite {
     id: ID!
@@ -13,7 +12,6 @@ type Favorite {
 
 enum FavoriteType {
     job
-    freelance
 }
 
 input AddFavoriteInput {

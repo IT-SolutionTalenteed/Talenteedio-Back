@@ -4,10 +4,9 @@ import bcrypt from 'bcrypt';
 
 import { Admin } from './Admin';
 import { Referral } from './Referral';
-import { Freelance } from './Freelance';
+import { Talent } from './Talent';
 import { Consultant } from './Consultant';
 import { Company } from './Company';
-import { Talent } from './Talent';
 import { Role } from './Role';
 import { Media } from './Media';
 
@@ -60,9 +59,6 @@ export class User extends BaseEntity {
 
     @OneToOne(() => Talent, (talent) => talent.user, { onDelete: 'CASCADE' })
     talent: Talent;
-
-    @OneToOne(() => Freelance, (freelance) => freelance.user, { onDelete: 'CASCADE' })
-    freelance: Freelance;
 
     @OneToOne(() => Consultant, (consultant) => consultant.user, { onDelete: 'CASCADE' })
     consultant: Consultant;
@@ -127,7 +123,6 @@ export class User extends BaseEntity {
             Admin.createQueryBuilder('admin').leftJoinAndSelect('admin.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Company.createQueryBuilder('company').leftJoinAndSelect('company.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Talent.createQueryBuilder('talent').leftJoinAndSelect('talent.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
-            Freelance.createQueryBuilder('freelance').leftJoinAndSelect('freelance.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Consultant.createQueryBuilder('consultant').leftJoinAndSelect('consultant.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             Referral.createQueryBuilder('referral').leftJoinAndSelect('referral.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),
             HrFirstClub.createQueryBuilder('hr_first_club').leftJoinAndSelect('hr_first_club.role', 'role').where('userId = :userId', { userId: this.id }).getOne(),

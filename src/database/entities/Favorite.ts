@@ -4,7 +4,6 @@ import { Job } from './Job';
 
 export enum FAVORITE_TYPE {
     JOB = 'job',
-    FREELANCE = 'freelance',
 }
 
 @Entity()

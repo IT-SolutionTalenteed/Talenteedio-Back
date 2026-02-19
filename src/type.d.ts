@@ -1,4 +1,4 @@
-import { Company, Referral, Talent, Freelance, Consultant, User, Job, Article, Contact, CV, LM, Event, Partner, Interview, ACTIVE_STATUS, Ad } from './database/entities';
+import { Company, Referral, Talent, Consultant, User, Job, Article, Contact, CV, LM, Event, Partner, Interview, ACTIVE_STATUS, Ad } from './database/entities';
 import { Address } from './database/entities/Address';
 import { MODEL } from './database/entities/Category';
 import { HrFirstClub } from './database/entities/HrFirstClub';
@@ -236,9 +236,9 @@ export interface Payload {
 
 export type Constructor<T> = new () => T;
 export type Class<T> = Constructor<T>;
-export type RoleName = 'admin' | 'company' | 'referral' | 'talent' | 'freelance' | 'consultant' | 'hr-first-club';
-export type RoleRegitration = 'talent' | 'referral' | 'freelance' | 'consultant' | 'company';
-export type RoleModel = Talent | Referral | Freelance | Consultant;
+export type RoleName = 'admin' | 'company' | 'referral' | 'talent' | 'consultant' | 'hr-first-club';
+export type RoleRegitration = 'talent' | 'referral' | 'consultant' | 'company';
+export type RoleModel = Talent | Referral | Consultant;
 
 export interface Resource<T> {
     rows: T[];
@@ -322,15 +322,6 @@ export interface CreateTalentInput extends Partial<Talent> {
 }
 
 export interface UpdateTalentInput extends Partial<Talent> {
-    id: string;
-}
-
-export interface CreateFreelanceInput extends Partial<Freelance> {
-    contact: Contact;
-    user: UpdateUserInput;
-}
-
-export interface UpdateFreelanceInput extends Partial<Freelance> {
     id: string;
 }
 

@@ -767,12 +767,12 @@ const resolversComposition = {
     'Mutation.deleteEvent': [guard(['admin', 'company'])],
     'Mutation.requestEventParticipation': [guard(['company'])],
     'Mutation.reviewParticipationRequest': [guard(['admin'])],
-    'Mutation.createEventReservation': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
-    'Mutation.createMultipleEventReservations': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
-    'Mutation.cancelEventReservation': [guard(['talent', 'freelance', 'consultant', 'referral', 'hr-first-club', 'admin'])],
+    'Mutation.createEventReservation': [guard(['talent', 'consultant', 'referral', 'hr-first-club'])],
+    'Mutation.createMultipleEventReservations': [guard(['talent', 'consultant', 'referral', 'hr-first-club'])],
+    'Mutation.cancelEventReservation': [guard(['talent', 'consultant', 'referral', 'hr-first-club', 'admin'])],
     'Query.getEventParticipationRequests': [guard(['admin', 'company'])],
-    'Query.getEventUserReservations': [guard(['admin', 'talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
-    'Query.getMyEventParticipationStatus': [guard(['admin', 'company', 'talent', 'freelance', 'consultant', 'referral', 'hr-first-club'])],
+    'Query.getEventUserReservations': [guard(['admin', 'talent', 'consultant', 'referral', 'hr-first-club'])],
+    'Query.getMyEventParticipationStatus': [guard(['admin', 'company', 'talent', 'consultant', 'referral', 'hr-first-club'])],
 };
 
 export default composeResolvers(resolver, resolversComposition);

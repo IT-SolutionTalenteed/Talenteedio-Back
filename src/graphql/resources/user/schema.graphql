@@ -34,8 +34,6 @@ type Query {
     getOneReferral(input: IdInput!): Referral
     getTalents(input: PaginationInput, filter: TalentFilter): PaginateTalent
     getOneTalent(input: IdInput!): Talent
-    getFreelances(input: PaginationInput, filter: FreelanceFilter): PaginateFreelance
-    getOneFreelance(input: IdInput!): Freelance
     getConsultants(input: PaginationInput, filter: ConsultantFilter): PaginateConsultant
     getOneConsultant(input: IdInput!): Consultant
     getCVs(input: PaginationInput, filter: CVFilter): PaginateCV
@@ -62,9 +60,6 @@ type Mutation {
     updateTalent(input: UpdateTalentInput): Talent
     createTalent(input: CreateTalentInput): Talent
     deleteTalent(input: IdInput!): Payload
-    updateFreelance(input: UpdateFreelanceInput): Freelance
-    createFreelance(input: CreateFreelanceInput): Freelance
-    deleteFreelance(input: IdInput!): Payload
     updateConsultant(input: UpdateConsultantInput): Consultant
     createConsultant(input: CreateConsultantInput): Consultant
     deleteConsultant(input: IdInput!): Payload
@@ -112,13 +107,6 @@ type PaginateTalent {
     limit: Int
 }
 
-type PaginateFreelance {
-    rows: [Freelance]!
-    total: Int!
-    page: Int
-    limit: Int
-}
-
 type PaginateConsultant {
     rows: [Consultant]!
     total: Int!
@@ -151,7 +139,6 @@ type User {
     referral: Referral
     company: Company
     talent: Talent
-    freelance: Freelance
     consultant: Consultant
     profilePicture: Media
     isVerified: Boolean
@@ -184,25 +171,6 @@ type Talent {
     cvs: [CV]
     lms: [LM]
     consent: Media
-    createdAt: Date
-    values: [Value]
-    tjm: Float
-    annualSalary: Float
-    mobility: String
-    availabilityDate: Date
-    desiredLocation: String
-    workMode: WORKMODE
-}
-
-type Freelance {
-    id: String!
-    user: User!
-    status: Status!
-    title: String
-    category: Category
-    contact: ContactWithoutEmail
-    cvs: [CV]
-    lms: [LM]
     createdAt: Date
     values: [Value]
     tjm: Float
@@ -250,7 +218,6 @@ type CV {
     languages: [Language]
     experiences: [Experience]
     talent: Talent
-    freelance: Freelance
     consultant: Consultant
     file: Media
     createdAt: Date
@@ -284,7 +251,6 @@ type LM {
     title: String!
     content: String!
     talent: Talent
-    freelance: Freelance
     consultant: Consultant
     createdAt: Date
 }
@@ -463,36 +429,6 @@ input UpdateTalentInput {
     workMode: WORKMODE
 }
 
-input CreateFreelanceInput {
-    status: Status!
-    user: UpdateUserInput!
-    category: UpdateCategoryInput
-    contact: ContactInputWithoutEmail!
-    values: [UpdateValueInput]!
-    tjm: Float
-    annualSalary: Float
-    mobility: String
-    availabilityDate: Date
-    desiredLocation: String
-    workMode: WORKMODE
-}
-
-input UpdateFreelanceInput {
-    id: String!
-    status: Status
-    title: String
-    user: UpdateUserInput
-    category: UpdateCategoryInput
-    contact: ContactInputWithoutEmail
-    values: [UpdateValueInput]
-    tjm: Float
-    annualSalary: Float
-    mobility: String
-    availabilityDate: Date
-    desiredLocation: String
-    workMode: WORKMODE
-}
-
 input CreateConsultantInput {
     status: Status!
     user: UpdateUserInput!
@@ -620,11 +556,6 @@ input TalentFilter {
     status: String
 }
 
-input FreelanceFilter {
-    name: String
-    status: String
-}
-
 input ConsultantFilter {
     name: String
     status: String
@@ -633,13 +564,11 @@ input ConsultantFilter {
 input CVFilter {
     title: String
     talentId: String
-    freelanceId: String
     consultantId: String
 }
 
 input LMFilter {
     title: String
     talentId: String
-    freelanceId: String
     consultantId: String
 }
