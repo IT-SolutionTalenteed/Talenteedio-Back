@@ -55,6 +55,25 @@ export class Company extends BaseEntity {
     @ManyToOne(() => Permission, (permission) => permission.companies, { nullable: false })
     permission: Permission;
 
+    // Nouveaux champs étendus pour l'inscription
+    @Column({ type: 'date', nullable: true })
+    foundedDate: Date;
+
+    @Column({ nullable: true })
+    employeeCount: string;
+
+    @Column({ type: 'text', nullable: true })
+    profileSought: string;
+
+    @Column({ nullable: true })
+    positionsToFill: string;
+
+    @Column({ nullable: true })
+    requiredSkills: string;
+
+    @Column({ nullable: true })
+    requiredExperience: string;
+
     @CreateDateColumn()
     createdAt: Date; // Creation date
 }

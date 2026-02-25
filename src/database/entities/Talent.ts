@@ -112,6 +112,40 @@ export class Talent extends BaseEntity {
     @Column({ type: 'enum', enum: WORKMODE, nullable: true })
     workMode: WORKMODE;
 
+    // Nouveaux champs étendus pour l'inscription
+    @Column({ nullable: true })
+    currentSalary: string;
+
+    @Column({ type: 'text', nullable: true })
+    skillsText: string;
+
+    @Column({ nullable: true })
+    languages: string;
+
+    @Column({ type: 'text', nullable: true })
+    educationText: string;
+
+    @Column({ nullable: true })
+    desiredSector: string;
+
+    @Column({ type: 'text', nullable: true })
+    interests: string;
+
+    @Column({ nullable: true })
+    desiredPosition: string;
+
+    @Column({ nullable: true })
+    desiredSalary: string;
+
+    @Column({ nullable: true })
+    availability: string;
+
+    @Column({ nullable: true })
+    country: string;
+
+    @Column({ nullable: true })
+    city: string;
+
     @CreateDateColumn()
     createdAt: Date; // Creation date
 }

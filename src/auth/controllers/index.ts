@@ -207,7 +207,15 @@ export const register = async (req: Request, res: Response) => {
 
     try {
         console.log('[REGISTER] Starting registration process');
-        const { firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, tjm, mobility, availabilityDate, desiredLocation, workMode, company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId } = {
+        const { 
+            firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, 
+            tjm, mobility, availabilityDate, desiredLocation, workMode, 
+            company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId,
+            // Nouveaux champs Talent
+            currentSalary, experience, skills, languages, education, desiredSector, interests, desiredPosition, desiredSalary, availability,
+            // Nouveaux champs Company
+            foundedDate, employeeCount, profileSought, positionsToFill, requiredSkills, requiredExperience
+        } = {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
             email: req.body.email ? ent.encode(req.body.email) : null,
@@ -231,6 +239,24 @@ export const register = async (req: Request, res: Response) => {
             state: req.body.state ? ent.encode(req.body.state) : null,
             country: req.body.country ? ent.encode(req.body.country) : null,
             logoId: req.body.logoId ? ent.encode(req.body.logoId) : null,
+            // Nouveaux champs Talent
+            currentSalary: req.body.currentSalary ? ent.encode(req.body.currentSalary) : null,
+            experience: req.body.experience ? ent.encode(req.body.experience) : null,
+            skills: req.body.skills ? ent.encode(req.body.skills) : null,
+            languages: req.body.languages ? ent.encode(req.body.languages) : null,
+            education: req.body.education ? ent.encode(req.body.education) : null,
+            desiredSector: req.body.desiredSector ? ent.encode(req.body.desiredSector) : null,
+            interests: req.body.interests ? ent.encode(req.body.interests) : null,
+            desiredPosition: req.body.desiredPosition ? ent.encode(req.body.desiredPosition) : null,
+            desiredSalary: req.body.desiredSalary ? ent.encode(req.body.desiredSalary) : null,
+            availability: req.body.availability ? ent.encode(req.body.availability) : null,
+            // Nouveaux champs Company
+            foundedDate: req.body.foundedDate ? ent.encode(req.body.foundedDate) : null,
+            employeeCount: req.body.employeeCount ? ent.encode(req.body.employeeCount) : null,
+            profileSought: req.body.profileSought ? ent.encode(req.body.profileSought) : null,
+            positionsToFill: req.body.positionsToFill ? ent.encode(req.body.positionsToFill) : null,
+            requiredSkills: req.body.requiredSkills ? ent.encode(req.body.requiredSkills) : null,
+            requiredExperience: req.body.requiredExperience ? ent.encode(req.body.requiredExperience) : null,
         };
 
         // Error handling
@@ -293,11 +319,27 @@ export const register = async (req: Request, res: Response) => {
                 }
                 newUser.talent.contact = new Contact();
                 newUser.talent.contact.phoneNumber = phone;
-                // Nouveaux champs
+                
+                // Champs existants
                 if (tjm !== null) newUser.talent.tjm = tjm;
                 if (mobility !== null) newUser.talent.mobility = mobility;
                 if (availabilityDate !== null) newUser.talent.availabilityDate = availabilityDate as any;
                 if (desiredLocation !== null) newUser.talent.desiredLocation = desiredLocation;
+                if (workMode !== null) newUser.talent.workMode = workMode as any;
+                
+                // Nouveaux champs étendus
+                if (currentSalary !== null) newUser.talent.currentSalary = currentSalary;
+                if (experience !== null) newUser.talent.experience = parseInt(experience) || 0;
+                if (skills !== null) newUser.talent.skillsText = skills;
+                if (languages !== null) newUser.talent.languages = languages;
+                if (education !== null) newUser.talent.educationText = education;
+                if (desiredSector !== null) newUser.talent.desiredSector = desiredSector;
+                if (interests !== null) newUser.talent.interests = interests;
+                if (desiredPosition !== null) newUser.talent.desiredPosition = desiredPosition;
+                if (desiredSalary !== null) newUser.talent.desiredSalary = desiredSalary;
+                if (availability !== null) newUser.talent.availability = availability;
+                if (country !== null) newUser.talent.country = country;
+                if (city !== null) newUser.talent.city = city;
                 if (workMode !== null) newUser.talent.workMode = workMode as any;
             } else if (role === 'consultant') {
                 console.log('[REGISTER] Creating consultant with cvId:', cvId);
@@ -383,6 +425,16 @@ export const register = async (req: Request, res: Response) => {
                     await queryRunner.manager.save(permission);
                     newUser.company.permission = permission;
                 }
+                
+                // Nouveaux champs étendus pour Company
+                if (foundedDate !== null) {
+                    newUser.company.foundedDate = new Date(foundedDate);
+                }
+                if (employeeCount !== null) newUser.company.employeeCount = employeeCount;
+                if (profileSought !== null) newUser.company.profileSought = profileSought;
+                if (positionsToFill !== null) newUser.company.positionsToFill = positionsToFill;
+                if (requiredSkills !== null) newUser.company.requiredSkills = requiredSkills;
+                if (requiredExperience !== null) newUser.company.requiredExperience = requiredExperience;
             }
 
             // Then save contact and role-specific entity

@@ -4,41 +4,70 @@ export class RemoveFreelance1740000000000 implements MigrationInterface {
     name = 'RemoveFreelance1740000000000';
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-        // Remove freelance relation from application table
-        await queryRunner.query(`ALTER TABLE \`application\` DROP FOREIGN KEY \`FK_application_freelance\``);
-        await queryRunner.query(`ALTER TABLE \`application\` DROP COLUMN \`freelanceId\``);
+        // Check if freelance table exists
+        const freelanceTableExists = await queryRunner.hasTable('freelance');
+        
+        if (freelanceTableExists) {
+            // Remove freelance relation from application table
+            const applicationTable = await queryRunner.getTable('application');
+            const applicationFk = applicationTable?.foreignKeys.find(fk => fk.columnNames.indexOf('freelanceId') !== -1);
+            if (applicationFk) {
+                await queryRunner.dropForeignKey('application', applicationFk);
+            }
+            if (applicationTable?.columns.find(col => col.name === 'freelanceId')) {
+                await queryRunner.query(`ALTER TABLE \`application\` DROP COLUMN \`freelanceId\``);
+            }
 
-        // Remove freelance relation from LM table
-        await queryRunner.query(`ALTER TABLE \`lm\` DROP FOREIGN KEY \`FK_lm_freelance\``);
-        await queryRunner.query(`ALTER TABLE \`lm\` DROP COLUMN \`freelanceId\``);
+            // Remove freelance relation from LM table
+            const lmTable = await queryRunner.getTable('lm');
+            const lmFk = lmTable?.foreignKeys.find(fk => fk.columnNames.indexOf('freelanceId') !== -1);
+            if (lmFk) {
+                await queryRunner.dropForeignKey('lm', lmFk);
+            }
+            if (lmTable?.columns.find(col => col.name === 'freelanceId')) {
+                await queryRunner.query(`ALTER TABLE \`lm\` DROP COLUMN \`freelanceId\``);
+            }
 
-        // Remove freelance relation from CV table
-        await queryRunner.query(`ALTER TABLE \`cv\` DROP FOREIGN KEY \`FK_cv_freelance\``);
-        await queryRunner.query(`ALTER TABLE \`cv\` DROP COLUMN \`freelanceId\``);
+            // Remove freelance relation from CV table
+            const cvTable = await queryRunner.getTable('cv');
+            const cvFk = cvTable?.foreignKeys.find(fk => fk.columnNames.indexOf('freelanceId') !== -1);
+            if (cvFk) {
+                await queryRunner.dropForeignKey('cv', cvFk);
+            }
+            if (cvTable?.columns.find(col => col.name === 'freelanceId')) {
+                await queryRunner.query(`ALTER TABLE \`cv\` DROP COLUMN \`freelanceId\``);
+            }
 
-        // Remove freelance relation from user table
-        await queryRunner.query(`ALTER TABLE \`user\` DROP FOREIGN KEY \`FK_user_freelance\``);
-        await queryRunner.query(`ALTER TABLE \`user\` DROP COLUMN \`freelanceId\``);
+            // Remove freelance relation from user table
+            const userTable = await queryRunner.getTable('user');
+            const userFk = userTable?.foreignKeys.find(fk => fk.columnNames.indexOf('freelanceId') !== -1);
+            if (userFk) {
+                await queryRunner.dropForeignKey('user', userFk);
+            }
+            if (userTable?.columns.find(col => col.name === 'freelanceId')) {
+                await queryRunner.query(`ALTER TABLE \`user\` DROP COLUMN \`freelanceId\``);
+            }
 
-        // Drop freelance_values junction table
-        await queryRunner.query(`ALTER TABLE \`freelance_values_value\` DROP FOREIGN KEY \`FK_freelance_values_value\``);
-        await queryRunner.query(`ALTER TABLE \`freelance_values_value\` DROP FOREIGN KEY \`FK_freelance_values_freelance\``);
-        await queryRunner.query(`DROP TABLE \`freelance_values_value\``);
+            // Drop freelance_values junction table
+            const freelanceValuesTableExists = await queryRunner.hasTable('freelance_values_value');
+            if (freelanceValuesTableExists) {
+                await queryRunner.query(`DROP TABLE \`freelance_values_value\``);
+            }
 
-        // Drop freelance table
-        await queryRunner.query(`ALTER TABLE \`freelance\` DROP FOREIGN KEY \`FK_freelance_contact\``);
-        await queryRunner.query(`ALTER TABLE \`freelance\` DROP FOREIGN KEY \`FK_freelance_category\``);
-        await queryRunner.query(`ALTER TABLE \`freelance\` DROP FOREIGN KEY \`FK_freelance_user\``);
-        await queryRunner.query(`ALTER TABLE \`freelance\` DROP FOREIGN KEY \`FK_freelance_role\``);
-        await queryRunner.query(`DROP TABLE \`freelance\``);
+            // Drop freelance table
+            await queryRunner.query(`DROP TABLE \`freelance\``);
+        }
 
         // Remove freelance role
         await queryRunner.query(`DELETE FROM \`role\` WHERE \`name\` = 'freelance'`);
 
-        // Remove Freelance from category model enum
+        // Delete or update categories with Freelance model before modifying enum
+        await queryRunner.query(`DELETE FROM \`category\` WHERE \`model\` = 'Freelance'`);
+
+        // Remove Freelance from category model enum (keeping all other existing values)
         await queryRunner.query(`
             ALTER TABLE \`category\` 
-            MODIFY COLUMN \`model\` enum('Job', 'Article', 'Event', 'Talent', 'Referral', 'Consultant') NULL
+            MODIFY COLUMN \`model\` enum('Company', 'Referral', 'Job', 'Talent', 'Consultant', 'Job_Talent', 'Article', 'Event') NOT NULL
         `);
     }
 
