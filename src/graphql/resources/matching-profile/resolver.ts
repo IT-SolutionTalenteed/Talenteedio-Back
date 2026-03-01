@@ -12,7 +12,7 @@ import { createGraphQLError } from 'graphql-yoga';
 import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 import { matchProfileWithCompany } from '../../../helpers/ai/profile-company-matcher';
 import { extractCVText } from '../../../helpers/ai/cv-matcher';
-import { In } from 'typeorm';
+import { In, Not } from 'typeorm';
 
 const relations = ['user', 'cv', 'currentSector'];
 
@@ -450,6 +450,36 @@ export default {
             });
             if (!company) {
                 throw createGraphQLError('Company not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+            }
+
+            // Vérifier qu'il n'y a pas déjà un rendez-vous avec cette entreprise (non annulé)
+            const existingAppointment = await CompanyAppointment.findOne({
+                where: {
+                    userId: user.id,
+                    companyId: companyId,
+                    status: Not(AppointmentStatus.CANCELLED)
+                }
+            });
+
+            if (existingAppointment) {
+                throw createGraphQLError('Vous avez déjà un rendez-vous avec cette entreprise', { 
+                    extensions: { statusCode: 400, statusText: 'DUPLICATE_APPOINTMENT' } 
+                });
+            }
+
+            // Vérifier que le créneau n'est pas déjà réservé
+            const conflictingAppointment = await CompanyAppointment.findOne({
+                where: {
+                    appointmentDate: new Date(appointmentDate),
+                    appointmentTime: appointmentTime,
+                    status: Not(AppointmentStatus.CANCELLED)
+                }
+            });
+
+            if (conflictingAppointment) {
+                throw createGraphQLError('Ce créneau horaire est déjà réservé', { 
+                    extensions: { statusCode: 400, statusText: 'TIME_SLOT_UNAVAILABLE' } 
+                });
             }
 
             // Créer le rendez-vous
