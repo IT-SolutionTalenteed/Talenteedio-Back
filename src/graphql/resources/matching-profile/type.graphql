@@ -175,4 +175,5 @@ extend type Query {
     getAllAppointments: [CompanyAppointment!]!
     getAppointmentById(id: ID!): CompanyAppointment
     getMyCompanyAppointments: [CompanyAppointment!]!
+    getMyAppointments: [CompanyAppointment!]!
 }

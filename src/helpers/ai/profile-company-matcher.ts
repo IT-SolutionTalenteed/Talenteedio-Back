@@ -27,20 +27,35 @@ export interface CompanyMatchResult {
 
 /**
  * Match un profil candidat avec une entreprise
- * Utilise le même système que le matching CV/Job mais adapté pour profil/entreprise
+ * Analyse le profil complet du candidat (CV, compétences, intérêts) 
+ * contre toutes les informations de l'entreprise (description, secteur, jobs publiés)
  */
 export async function matchProfileWithCompany(input: CompanyMatchInput): Promise<CompanyMatchResult> {
     return new Promise((resolve, reject) => {
         // Utiliser le script Python existant avec des paramètres adaptés
         const pythonScript = path.join(__dirname, '../../../ai-service/cv_job_matcher.py');
         
-        // Construire une "description de job" virtuelle basée sur l'entreprise
-        const virtualJobDescription = `
+        // Construire une description complète de l'entreprise incluant TOUS les jobs
+        let virtualJobDescription = `
 Entreprise: ${input.companyName}
 Secteur: ${input.companySector}
 Description: ${input.companyDescription}
-${input.companyJobs && input.companyJobs.length > 0 ? `Postes disponibles: ${input.companyJobs.join(', ')}` : ''}
         `.trim();
+        
+        // Ajouter tous les jobs disponibles avec leurs détails
+        if (input.companyJobs && input.companyJobs.length > 0) {
+            virtualJobDescription += `\n\nPOSTES DISPONIBLES DANS L'ENTREPRISE:\n`;
+            input.companyJobs.forEach((job, index) => {
+                virtualJobDescription += `\n${index + 1}. ${job}`;
+            });
+        } else {
+            virtualJobDescription += `\n\nAucun poste publié actuellement.`;
+        }
+        
+        // Ajouter les secteurs ciblés par le candidat pour contexte
+        if (input.targetSectors && input.targetSectors.length > 0) {
+            virtualJobDescription += `\n\nSecteurs recherchés par le candidat: ${input.targetSectors.join(', ')}`;
+        }
         
         const args = [
             pythonScript,
@@ -49,9 +64,18 @@ ${input.companyJobs && input.companyJobs.length > 0 ? `Postes disponibles: ${inp
             '--job-description', virtualJobDescription,
         ];
         
+        // Ajouter les compétences du candidat
         if (input.profileSkills && input.profileSkills.length > 0) {
             args.push('--job-skills', input.profileSkills.join(','));
         }
+        
+        // Ajouter les centres d'intérêt comme contexte supplémentaire
+        if (input.profileInterests && input.profileInterests.length > 0) {
+            args.push('--candidate-interests', input.profileInterests.join(','));
+        }
+        
+        console.log(`[AI Matching] Starting match for: ${input.companyName}`);
+        console.log(`[AI Matching] Jobs count: ${input.companyJobs?.length || 0}`);
         
         const pythonProcess = spawn('python3', args);
         
@@ -68,22 +92,23 @@ ${input.companyJobs && input.companyJobs.length > 0 ? `Postes disponibles: ${inp
         
         pythonProcess.on('close', (code) => {
             if (code !== 0) {
-                console.error('Python script error:', stderr);
+                console.error(`[AI Matching] Python script error for ${input.companyName}:`, stderr);
                 reject(new Error(`Python script failed with code ${code}: ${stderr}`));
                 return;
             }
             
             try {
                 const result: CompanyMatchResult = JSON.parse(stdout);
+                console.log(`[AI Matching] Success for ${input.companyName}: ${result.overall_match_percentage}%`);
                 resolve(result);
             } catch (error) {
-                console.error('Failed to parse Python output:', stdout);
+                console.error(`[AI Matching] Failed to parse output for ${input.companyName}:`, stdout);
                 reject(new Error(`Failed to parse AI response: ${error}`));
             }
         });
         
         pythonProcess.on('error', (error) => {
-            console.error('Failed to start Python process:', error);
+            console.error(`[AI Matching] Failed to start Python process for ${input.companyName}:`, error);
             reject(new Error(`Failed to start AI service: ${error.message}`));
         });
     });

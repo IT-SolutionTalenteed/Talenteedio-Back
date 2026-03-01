@@ -184,6 +184,26 @@ export default {
 
             return appointments;
         },
+
+        // Récupérer les rendez-vous de l'utilisateur connecté (talent)
+        getMyAppointments: async (_: any, __: any, context: any): Promise<CompanyAppointment[]> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            console.log('[getMyAppointments] User ID:', user.id);
+
+            const appointments = await CompanyAppointment.find({
+                where: { userId: user.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user', 'matchingProfile'],
+                order: { createdAt: 'DESC' },
+            });
+
+            console.log('[getMyAppointments] Found appointments:', appointments.length);
+
+            return appointments;
+        },
     },
 
     Mutation: {
@@ -288,7 +308,7 @@ export default {
                 });
             }
 
-            // Récupérer les entreprises des secteurs ciblés
+            // Récupérer TOUTES les entreprises publiques avec leurs jobs
             let companies: Company[] = [];
             
             if (profile.targetSectorIds && profile.targetSectorIds.length > 0) {
@@ -310,7 +330,6 @@ export default {
                             status: 'public' as any,
                         },
                         relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
-                        take: 50,
                     });
                 }
                 
@@ -320,15 +339,13 @@ export default {
                     companies = await Company.find({
                         where: { status: 'public' as any },
                         relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
-                        take: 50,
                     });
                 }
             } else {
-                // Si pas de secteur spécifié, prendre toutes les entreprises publiques
+                // Si pas de secteur spécifié, prendre TOUTES les entreprises publiques
                 companies = await Company.find({
                     where: { status: 'public' as any },
                     relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
-                    take: 50,
                 });
             }
 
@@ -337,6 +354,8 @@ export default {
                     extensions: { statusCode: 404, statusText: NOT_FOUND } 
                 });
             }
+
+            console.log(`Matching profile with ${companies.length} companies`);
 
             const matches: CompanyMatch[] = [];
 
@@ -351,12 +370,35 @@ export default {
                         },
                     });
 
-                    // Construire la description de l'entreprise
-                    const companyDescription = company.contact?.address?.city || company.company_name;
-                    const companySector = company.category?.name || 'Non spécifié';
-                    const companyJobs = company.jobs?.filter((j: Job) => j.status === 'public').map((j: Job) => j.title) || [];
+                    // Construire une description complète de l'entreprise avec tous les jobs
+                    let companyDescription = company.company_name;
+                    
+                    if (company.contact?.address?.city) {
+                        companyDescription += ` - Localisation: ${company.contact.address.city}`;
+                    }
+                    
+                    if (company.contact?.address?.country) {
+                        companyDescription += `, ${company.contact.address.country}`;
+                    }
 
-                    // Appeler le service de matching
+                    const companySector = company.category?.name || 'Non spécifié';
+                    
+                    // Récupérer TOUS les jobs publics de l'entreprise avec leurs détails
+                    const companyJobs = company.jobs
+                        ?.filter((j: Job) => j.status === 'public')
+                        .map((j: Job) => {
+                            let jobInfo = j.title;
+                            if (j.content) {
+                                // Limiter le contenu à 200 caractères pour ne pas surcharger
+                                const shortContent = j.content.substring(0, 200);
+                                jobInfo += ` - ${shortContent}${j.content.length > 200 ? '...' : ''}`;
+                            }
+                            return jobInfo;
+                        }) || [];
+
+                    console.log(`Matching with company: ${company.company_name} (${companyJobs.length} jobs)`);
+
+                    // Appeler le service de matching avec toutes les informations
                     const matchResult = await matchProfileWithCompany({
                         profileText,
                         profileTitle: profile.title,
@@ -369,17 +411,29 @@ export default {
                         companyJobs,
                     });
 
-                    if (!match) {
-                        match = new CompanyMatch();
-                        match.matchingProfileId = profile.id;
-                        match.companyId = company.id;
+                    // Ne sauvegarder que les matchs avec un score >= 40%
+                    if (matchResult.overall_match_percentage >= 40) {
+                        if (!match) {
+                            match = new CompanyMatch();
+                            match.matchingProfileId = profile.id;
+                            match.companyId = company.id;
+                        }
+
+                        match.matchScore = matchResult.overall_match_percentage;
+                        match.matchDetails = matchResult;
+
+                        await match.save();
+                        matches.push(match);
+                        
+                        console.log(`✓ Match saved: ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                    } else {
+                        console.log(`✗ Match rejected (score < 40%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                        
+                        // Supprimer le match existant s'il est en dessous de 40%
+                        if (match && match.id) {
+                            await CompanyMatch.delete(match.id);
+                        }
                     }
-
-                    match.matchScore = matchResult.overall_match_percentage;
-                    match.matchDetails = matchResult;
-
-                    await match.save();
-                    matches.push(match);
                 } catch (error) {
                     console.error(`Error matching with company ${company.id}:`, error);
                     // Continuer avec les autres entreprises
@@ -393,7 +447,7 @@ export default {
             return {
                 success: true,
                 matchCount: matches.length,
-                message: `${matches.length} entreprises matchées avec succès`,
+                message: `${matches.length} entreprises matchées avec succès (score ≥ 40%)`,
             };
         },
 
