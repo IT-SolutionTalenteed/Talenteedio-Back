@@ -5,6 +5,7 @@ import { createGraphQLError } from 'graphql-yoga';
 
 import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
+
 import { getResources, returnError } from '../../../helpers/graphql';
 
 import guard from '../../middleware/graphql-guard';
@@ -37,11 +38,11 @@ const resolver = {
 
                     const nullConditions = args.filter.withoutRole
                         ? {
-                              company: { id: IsNull() },
-                              admin: { id: IsNull() },
-                              talent: { id: IsNull() },
-                              referral: { id: IsNull() },
-                          }
+                            company: { id: IsNull() },
+                            admin: { id: IsNull() },
+                            talent: { id: IsNull() },
+                            referral: { id: IsNull() },
+                        }
                         : {};
 
                     filters = {
@@ -522,8 +523,8 @@ const resolver = {
                     });
 
                     if (!permission) {
-                        throw createGraphQLError('Default permission not found. Please run database seeds.', { 
-                            extensions: { statusCode: 500, statusText: 'INTERNAL_SERVER_ERROR' } 
+                        throw createGraphQLError('Default permission not found. Please run database seeds.', {
+                            extensions: { statusCode: 500, statusText: 'INTERNAL_SERVER_ERROR' }
                         });
                     }
 
@@ -684,7 +685,7 @@ const resolver = {
             await queryRunner.startTransaction();
 
             try {
-                const company = Object.assign(new Company(), { ...args.input, contact: undefined }) as Company;
+                const company = Object.assign(new Company(), { ...args.input, contact: undefined, user: undefined, category: undefined, permission: undefined, logo: undefined }) as Company;
 
                 const address = Address.create(args.input.contact.address);
                 await queryRunner.manager.save(address);
@@ -694,6 +695,29 @@ const resolver = {
                 await queryRunner.manager.save(contact);
 
                 company.contact = contact;
+
+                // Charger les relations
+                if (args.input.category?.id) {
+                    const category = await queryRunner.manager.findOne(Category, { where: { id: args.input.category.id } });
+                    if (category) {
+                        company.category = category;
+                    }
+                }
+
+                if (args.input.permission?.id) {
+                    const permission = await queryRunner.manager.findOne(Permission, { where: { id: args.input.permission.id } });
+                    if (permission) {
+                        company.permission = permission;
+                    }
+                }
+
+                if (args.input.logo?.id) {
+                    const logo = await queryRunner.manager.findOne(Media, { where: { id: args.input.logo.id } });
+                    if (logo) {
+                        company.logo = logo;
+                    }
+                }
+
                 await queryRunner.manager.save(company);
 
                 await queryRunner.commitTransaction();
@@ -701,6 +725,7 @@ const resolver = {
                 const user = (await User.findOne({ where: { id: args.input.user.id } })) as User;
 
                 user.validateAt = new Date();
+                user.company = company;
 
                 await user.save();
 
@@ -712,6 +737,28 @@ const resolver = {
             } finally {
                 // Release the query runner when done.
                 await queryRunner.release();
+            }
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sendCompanyCredentials: async (_: any, args: { input: { companyName: string; email: string; password: string } }): Promise<Payload> => {
+            try {
+                const { sendCompanyCredentials } = await import('../../../helpers/mailer/send-company-credentials');
+                
+                const adminUrl = process.env.HOST || 'http://localhost:8080';
+                
+                await sendCompanyCredentials({
+                    companyName: args.input.companyName,
+                    email: args.input.email,
+                    password: args.input.password,
+                    adminUrl: adminUrl
+                });
+
+                return { success: true, msg: 'Credentials email sent successfully' };
+            } catch (error: any) {
+                console.error('Error sending company credentials email:', error);
+                throw createGraphQLError('Failed to send credentials email', { 
+                    extensions: { statusCode: 500, statusText: 'INTERNAL_SERVER_ERROR' } 
+                });
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -747,7 +794,7 @@ const resolver = {
 
                     // Gérer les relations (category, user, permission, logo)
                     const updateData: any = { ...args.input, contact: undefined };
-                    
+
                     // Charger la catégorie si fournie
                     if (args.input.category?.id) {
                         const category = await queryRunner.manager.findOne(Category, { where: { id: args.input.category.id } });
@@ -755,7 +802,7 @@ const resolver = {
                             updateData.category = category;
                         }
                     }
-                    
+
                     // Charger l'utilisateur si fourni (admin uniquement)
                     if (args.input.user?.id && user.admin) {
                         const companyUser = await queryRunner.manager.findOne(User, { where: { id: args.input.user.id } });
@@ -763,7 +810,7 @@ const resolver = {
                             updateData.user = companyUser;
                         }
                     }
-                    
+
                     // Charger la permission si fournie (admin uniquement)
                     if (args.input.permission?.id && user.admin) {
                         const permission = await queryRunner.manager.findOne(Permission, { where: { id: args.input.permission.id } });
@@ -771,7 +818,7 @@ const resolver = {
                             updateData.permission = permission;
                         }
                     }
-                    
+
                     // Charger le logo si fourni
                     if (args.input.logo?.id) {
                         const logo = await queryRunner.manager.findOne(Media, { where: { id: args.input.logo.id } });

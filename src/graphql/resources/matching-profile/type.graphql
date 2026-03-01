@@ -12,12 +12,24 @@ type Category {
     name: String!
 }
 
+type SocialNetworks {
+    linkedin: String
+    twitter: String
+    facebook: String
+}
+
 type Company {
     id: ID!
     company_name: String!
     logo: Media
     category: Category
     contact: Contact
+    slogan: String
+    description: String
+    about: String
+    headquarters: String
+    website: String
+    socialNetworks: SocialNetworks
 }
 
 type Media {

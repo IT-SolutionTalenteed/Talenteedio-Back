@@ -51,6 +51,7 @@ type Mutation {
     updateCompany(input: UpdateCompanyInput): Company
     createCompany(input: CreateCompanyInput): Company
     deleteCompany(input: IdInput!): Payload
+    sendCompanyCredentials(input: SendCompanyCredentialsInput!): Payload
     updateReferral(input: UpdateReferralInput): Referral
     createReferral(input: CreateReferralInput): Referral
     deleteReferral(input: IdInput!): Payload
@@ -276,6 +277,27 @@ type Company {
     status: Status!
     user: User
     contact: Contact
+    slogan: String
+    description: String
+    about: String
+    headquarters: String
+    website: String
+    industry: String
+    sector: String
+    companySize: String
+    numberOfEmployees: Int
+    foundedYear: Int
+    country: String
+    city: String
+    address: String
+    postalCode: String
+    profileSought: String
+    positionsToFill: String
+    requiredSkills: String
+    requiredExperience: String
+    contractTypes: String
+    workingHours: String
+    socialNetworks: SocialNetworks
     articles: [Article]
     jobs: [Job]
     logo: Media
@@ -337,8 +359,41 @@ input CreateCompanyInput {
     user: UpdateUserInput!
     contact: ContactInput!
     logo: MediaInput
+    slogan: String
+    description: String
+    about: String
+    headquarters: String
+    website: String
+    industry: String
+    sector: String
+    companySize: String
+    numberOfEmployees: Int
+    foundedYear: Int
+    country: String
+    city: String
+    address: String
+    postalCode: String
+    profileSought: String
+    positionsToFill: String
+    requiredSkills: String
+    requiredExperience: String
+    contractTypes: String
+    workingHours: String
+    socialNetworks: SocialNetworksInput
     category: UpdateCategoryInput
     permission: UpdatePermissionInput
+}
+
+type SocialNetworks {
+    linkedin: String
+    twitter: String
+    facebook: String
+}
+
+input SocialNetworksInput {
+    linkedin: String
+    twitter: String
+    facebook: String
 }
 
 input UpdateCompanyInput {
@@ -348,6 +403,27 @@ input UpdateCompanyInput {
     status: Status
     contact: ContactInput
     logo: MediaInput
+    slogan: String
+    description: String
+    about: String
+    headquarters: String
+    website: String
+    industry: String
+    sector: String
+    companySize: String
+    numberOfEmployees: Int
+    foundedYear: Int
+    country: String
+    city: String
+    address: String
+    postalCode: String
+    profileSought: String
+    positionsToFill: String
+    requiredSkills: String
+    requiredExperience: String
+    contractTypes: String
+    workingHours: String
+    socialNetworks: SocialNetworksInput
     category: UpdateCategoryInput
     permission: UpdatePermissionInput
 }
@@ -571,4 +647,10 @@ input LMFilter {
     title: String
     talentId: String
     consultantId: String
+}
+
+input SendCompanyCredentialsInput {
+    companyName: String!
+    email: String!
+    password: String!
 }
