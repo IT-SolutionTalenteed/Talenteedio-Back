@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import generatePassword from 'generate-password';
 
 import AppDataSource from '../../database';
-import { CV, Contact, Media, Referral, Consultant, Talent, User, UserSession, Value, Company, Permission, Category, Address } from '../../database/entities';
+import { CV, Contact, Media, Referral, Consultant, Talent, User, UserSession, Value, Company, Permission, Category, Address, MatchingProfile } from '../../database/entities';
 import { validateEmail } from '../../helpers/utils';
 import transporter from '../../helpers/mailer';
 
@@ -659,6 +659,32 @@ export const register = async (req: Request, res: Response) => {
 
                     talent.consent = consent;
                     await talent.save();
+
+                    // Create matching profile automatically after consent
+                    try {
+                        console.log('[REGISTER] Auto-creating matching profile for talent');
+                        const matchingProfile = new MatchingProfile();
+                        matchingProfile.user = newUser;
+                        matchingProfile.userId = newUser.id;
+                        matchingProfile.title = desiredPosition || `${newUser.firstname} ${newUser.lastname} Profile`;
+                        matchingProfile.interests = interests ? [interests] : [];
+                        matchingProfile.skills = skills ? [skills] : [];
+
+                        matchingProfile.targetSectorIds = [];
+                        matchingProfile.status = 'active' as any;
+
+                        if (cvId) {
+                            const cvMedia = await Media.findOne({ where: { id: cvId } });
+                            if (cvMedia) {
+                                matchingProfile.cv = cvMedia;
+                            }
+                        }
+
+                        await queryRunner.manager.save(matchingProfile);
+                        console.log('[REGISTER] Matching profile created successfully');
+                    } catch (mpError) {
+                        console.error('[REGISTER] Failed to auto-create matching profile, ignoring error:', mpError);
+                    }
                 }
             } catch (error) {
                 // Do not fail registration if consent generation fails; just log
