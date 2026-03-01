@@ -349,6 +349,15 @@ input UpdateUserInput {
     validateAt: Date
 }
 
+input CreateOrLinkUserInput {
+    id: String
+    email: String
+    firstname: String
+    lastname: String
+    password: String
+    role: String
+}
+
 input IdInput {
     id: String!
 }
@@ -356,7 +365,7 @@ input IdInput {
 input CreateCompanyInput {
     company_name: String!
     status: Status
-    user: UpdateUserInput!
+    user: CreateOrLinkUserInput!
     contact: ContactInput!
     logo: MediaInput
     slogan: String

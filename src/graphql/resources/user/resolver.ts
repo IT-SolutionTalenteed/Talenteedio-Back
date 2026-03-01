@@ -2,6 +2,7 @@ import { HrFirstClub } from './../../../database/entities/HrFirstClub';
 import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
+import bcrypt from 'bcrypt';
 
 import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
@@ -682,9 +683,43 @@ const resolver = {
         createCompany: async (_: any, args: { input: CreateCompanyInput }): Promise<Company> => {
             const queryRunner = AppDataSource.createQueryRunner();
 
+            await queryRunner.connect();
             await queryRunner.startTransaction();
 
             try {
+                let user: User;
+
+                // Si un ID utilisateur est fourni, utiliser l'utilisateur existant
+                if (args.input.user.id) {
+                    const existingUser = await queryRunner.manager.findOne(User, { where: { id: args.input.user.id } });
+                    if (!existingUser) {
+                        throw createGraphQLError('User not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                    }
+                    user = existingUser;
+                } else {
+                    // Sinon, créer un nouvel utilisateur
+                    if (!args.input.user.email || !args.input.user.password) {
+                        throw createGraphQLError('Email and password are required to create a new user', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
+                    }
+
+                    // Vérifier si l'email existe déjà
+                    const existingUser = await queryRunner.manager.findOne(User, { where: { email: args.input.user.email } });
+                    if (existingUser) {
+                        throw createGraphQLError('Email already exists', { extensions: { statusCode: 400, statusText: BAD_REQUEST } });
+                    }
+
+                    // Créer le nouvel utilisateur
+                    user = new User();
+                    user.email = args.input.user.email;
+                    user.firstname = args.input.user.firstname || args.input.company_name;
+                    user.lastname = args.input.user.lastname || '';
+                    user.password = await bcrypt.hash(args.input.user.password, 10);
+                    user.validateAt = new Date();
+
+                    await queryRunner.manager.save(user);
+                }
+
+                // Créer la company
                 const company = Object.assign(new Company(), { ...args.input, contact: undefined, user: undefined, category: undefined, permission: undefined, logo: undefined }) as Company;
 
                 const address = Address.create(args.input.contact.address);
@@ -720,19 +755,18 @@ const resolver = {
 
                 await queryRunner.manager.save(company);
 
-                await queryRunner.commitTransaction();
-
-                const user = (await User.findOne({ where: { id: args.input.user.id } })) as User;
-
-                user.validateAt = new Date();
+                // Lier l'utilisateur à la company
                 user.company = company;
+                await queryRunner.manager.save(user);
 
-                await user.save();
+                await queryRunner.commitTransaction();
 
                 return company;
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } catch (error: any) {
-                await queryRunner.rollbackTransaction();
+                if (queryRunner.isTransactionActive) {
+                    await queryRunner.rollbackTransaction();
+                }
                 throw returnError(error);
             } finally {
                 // Release the query runner when done.
