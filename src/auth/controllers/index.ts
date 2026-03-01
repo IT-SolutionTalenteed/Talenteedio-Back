@@ -69,13 +69,13 @@ const generateAccessToken = (req: Request, res: Response, user: User, withRefres
 export const loginMiddleware = async (req: Request, res: Response, cb: (user: User, withRefreshToken: boolean) => void) => {
     const now = Date.now();
     const LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes en millisecondes
-    
+
     // Réinitialiser le compteur si plus de 5 minutes se sont écoulées depuis la dernière tentative
     if (req.session.lastAttemptTime && (now - req.session.lastAttemptTime) > LOCKOUT_DURATION) {
         req.session.userAttempt = 0;
         req.session.lastAttemptTime = undefined;
     }
-    
+
     req.session.userAttempt = typeof req.session.userAttempt !== 'number' ? 0 : req.session.userAttempt;
 
     try {
@@ -97,9 +97,9 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
         if (user) {
             // Vérifier si c'est un consultant non validé
             if (user.consultant && !user.isVerified) {
-                res.status(403).json({ 
+                res.status(403).json({
                     msg: 'Votre compte consultant est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
-                    pending: true 
+                    pending: true
                 });
                 return;
             }
@@ -108,9 +108,9 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
             if (user.company) {
                 const company = await Company.findOne({ where: { user: { id: user.id } } });
                 if (company && company.status === 'pending') {
-                    res.status(403).json({ 
+                    res.status(403).json({
                         msg: 'Votre compte entreprise est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
-                        pending: true 
+                        pending: true
                     });
                     return;
                 }
@@ -129,7 +129,7 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
             } else {
                 req.session.userAttempt++;
                 req.session.lastAttemptTime = Date.now();
-                
+
                 // Bloquer après 3 tentatives échouées
                 if (req.session.userAttempt >= 3) {
                     res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
@@ -140,7 +140,7 @@ export const loginMiddleware = async (req: Request, res: Response, cb: (user: Us
         } else {
             req.session.userAttempt++;
             req.session.lastAttemptTime = Date.now();
-            
+
             // Bloquer après 3 tentatives échouées
             if (req.session.userAttempt >= 3) {
                 res.status(401).json({ msg: 'Email ou mot de passe incorrect' });
@@ -207,9 +207,9 @@ export const register = async (req: Request, res: Response) => {
 
     try {
         console.log('[REGISTER] Starting registration process');
-        const { 
-            firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId, 
-            tjm, mobility, availabilityDate, desiredLocation, workMode, 
+        const {
+            firstname, lastname, email, password, confirmationPassword, role, phone, values, cvId,
+            tjm, mobility, availabilityDate, desiredLocation, workMode,
             company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId,
             // Nouveaux champs Talent
             currentSalary, experience, skills, languages, education, desiredSector, interests, desiredPosition, desiredSalary, availability,
@@ -336,14 +336,14 @@ export const register = async (req: Request, res: Response) => {
                 }
                 newUser.talent.contact = new Contact();
                 newUser.talent.contact.phoneNumber = phone;
-                
+
                 // Champs existants
                 if (tjm !== null) newUser.talent.tjm = tjm;
                 if (mobility !== null) newUser.talent.mobility = mobility;
                 if (availabilityDate !== null) newUser.talent.availabilityDate = availabilityDate as any;
                 if (desiredLocation !== null) newUser.talent.desiredLocation = desiredLocation;
                 if (workMode !== null) newUser.talent.workMode = workMode as any;
-                
+
                 // Nouveaux champs étendus
                 if (currentSalary !== null) newUser.talent.currentSalary = currentSalary;
                 if (experience !== null) newUser.talent.experience = parseInt(experience) || 0;
@@ -358,7 +358,7 @@ export const register = async (req: Request, res: Response) => {
                 if (country !== null) newUser.talent.country = country;
                 if (city !== null) newUser.talent.city = city;
                 if (workMode !== null) newUser.talent.workMode = workMode as any;
-                
+
                 // Champs supplémentaires pour l'inscription complète
                 if (annualSalary !== null) newUser.talent.annualSalary = annualSalary;
                 if (yearsOfExperience !== null) newUser.talent.yearsOfExperience = yearsOfExperience;
@@ -454,7 +454,7 @@ export const register = async (req: Request, res: Response) => {
                     await queryRunner.manager.save(permission);
                     newUser.company.permission = permission;
                 }
-                
+
                 // Nouveaux champs étendus pour Company
                 if (foundedDate !== null) {
                     newUser.company.foundedDate = new Date(foundedDate);
@@ -464,7 +464,7 @@ export const register = async (req: Request, res: Response) => {
                 if (positionsToFill !== null) newUser.company.positionsToFill = positionsToFill;
                 if (requiredSkills !== null) newUser.company.requiredSkills = requiredSkills;
                 if (requiredExperience !== null) newUser.company.requiredExperience = requiredExperience;
-                
+
                 // Champs supplémentaires pour l'inscription complète
                 if (companySize !== null) newUser.company.companySize = companySize;
                 if (foundedYear !== null) newUser.company.foundedYear = foundedYear;
@@ -498,21 +498,25 @@ export const register = async (req: Request, res: Response) => {
             // Save user first
             console.log('[REGISTER] Saving user');
             await queryRunner.manager.save(newUser);
-            
+
             // Link role entity to user and save
             console.log('[REGISTER] Saving role entity');
             if (role === 'consultant') {
                 newUser.consultant.user = newUser;
                 await queryRunner.manager.save(newUser.consultant);
+                delete (newUser.consultant as any).user;
             } else if (role === 'talent') {
                 newUser.talent.user = newUser;
                 await queryRunner.manager.save(newUser.talent);
+                delete (newUser.talent as any).user;
             } else if (role === 'company') {
                 newUser.company.user = newUser;
                 await queryRunner.manager.save(newUser.company);
+                delete (newUser.company as any).user;
             } else if (role === 'referral') {
                 newUser.referral.user = newUser;
                 await queryRunner.manager.save(newUser.referral);
+                delete (newUser.referral as any).user;
             }
 
             console.log('[REGISTER] Creating CV if needed');
@@ -536,104 +540,104 @@ export const register = async (req: Request, res: Response) => {
 
             try {
                 if (role === 'consultant') {
-                        // Pour les consultants : email de confirmation d'inscription
-                        await transporter.sendMail({
-                            from: 'Talenteed.io ' + process.env.MAILUSER,
-                            to: email,
-                            subject: 'Inscription en attente de validation',
-                            template: 'index',
-                            context: {
-                                title: `Bonjour ${newUser.firstname} ${newUser.lastname}`,
-                                message: `Merci pour votre inscription en tant que consultant. Votre compte est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.`,
-                                host: process.env.FRONTEND_HOST,
-                                imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
-                                imageTitle: 'Inscription reçue',
-                                backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
-                            },
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        } as any);
+                    // Pour les consultants : email de confirmation d'inscription
+                    await transporter.sendMail({
+                        from: 'Talenteed.io ' + process.env.MAILUSER,
+                        to: email,
+                        subject: 'Inscription en attente de validation',
+                        template: 'index',
+                        context: {
+                            title: `Bonjour ${newUser.firstname} ${newUser.lastname}`,
+                            message: `Merci pour votre inscription en tant que consultant. Votre compte est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.`,
+                            host: process.env.FRONTEND_HOST,
+                            imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
+                            imageTitle: 'Inscription reçue',
+                            backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
+                        },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    } as any);
 
-                        // Email à l'administrateur avec CV en pièce jointe
-                        const adminEmail = process.env.ADMIN_EMAIL || process.env.MAILUSER;
-                        
-                        // Récupérer le nom de la catégorie et le CV
-                        let categoryName = 'Non spécifiée';
-                        let cvUrl = '';
-                        
-                        if (categoryId) {
-                            try {
-                                const category = await Category.findOne({ where: { id: categoryId } });
-                                if (category) {
-                                    categoryName = category.name;
-                                }
-                            } catch (error) {
-                                console.error('Erreur lors de la récupération de la catégorie:', error);
+                    // Email à l'administrateur avec CV en pièce jointe
+                    const adminEmail = process.env.ADMIN_EMAIL || process.env.MAILUSER;
+
+                    // Récupérer le nom de la catégorie et le CV
+                    let categoryName = 'Non spécifiée';
+                    let cvUrl = '';
+
+                    if (categoryId) {
+                        try {
+                            const category = await Category.findOne({ where: { id: categoryId } });
+                            if (category) {
+                                categoryName = category.name;
                             }
+                        } catch (error) {
+                            console.error('Erreur lors de la récupération de la catégorie:', error);
                         }
-                        
-                        // Récupérer l'URL du CV
-                        if (cvId) {
-                            try {
-                                const cvMedia = await Media.findOne({ where: { id: cvId } });
-                                if (cvMedia && cvMedia.fileUrl) {
-                                    cvUrl = cvMedia.fileUrl;
-                                }
-                            } catch (error) {
-                                console.error('Erreur lors de la récupération du CV:', error);
+                    }
+
+                    // Récupérer l'URL du CV
+                    if (cvId) {
+                        try {
+                            const cvMedia = await Media.findOne({ where: { id: cvId } });
+                            if (cvMedia && cvMedia.fileUrl) {
+                                cvUrl = cvMedia.fileUrl;
                             }
+                        } catch (error) {
+                            console.error('Erreur lors de la récupération du CV:', error);
                         }
-                        
-                        // Préparer les informations du consultant avec lien CV cliquable
-                        const consultantInfoLines = [
-                            `<strong>Nom :</strong> ${newUser.firstname} ${newUser.lastname}`,
-                            `<strong>Email :</strong> ${email}`,
-                            `<strong>Téléphone :</strong> ${phone}`,
-                            `<strong>Catégorie :</strong> ${categoryName}`,
-                            `<strong>Expertise :</strong> ${req.body.expertise || 'Non spécifiée'}`,
-                            `<strong>Années d'expérience :</strong> ${req.body.yearsOfExperience || 'Non spécifiée'}`,
-                            `<strong>Adresse :</strong> ${address_line || ''}, ${postalCode || ''} ${city || ''}, ${state || ''} ${country || ''}`,
-                        ];
-                        
-                        if (cvUrl) {
-                            consultantInfoLines.push(`<strong>CV :</strong> <a href="${cvUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">Télécharger le CV</a>`);
-                        }
-                        
-                        const consultantInfo = consultantInfoLines.join('<br>');
+                    }
 
-                        const mailOptions: any = {
-                            from: 'Talenteed.io ' + process.env.MAILUSER,
-                            to: adminEmail,
-                            subject: 'Nouvelle inscription consultant à valider',
-                            template: 'index',
-                            context: {
-                                title: 'Nouvelle inscription consultant',
-                                message: `Un nouveau consultant s'est inscrit et attend votre validation :<br><br>${consultantInfo}<br><br>Connectez-vous à l'administration pour valider ce compte.`,
-                                host: process.env.FRONTEND_HOST,
-                                imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
-                                imageTitle: 'Action requise',
-                                backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
-                            },
-                        };
+                    // Préparer les informations du consultant avec lien CV cliquable
+                    const consultantInfoLines = [
+                        `<strong>Nom :</strong> ${newUser.firstname} ${newUser.lastname}`,
+                        `<strong>Email :</strong> ${email}`,
+                        `<strong>Téléphone :</strong> ${phone}`,
+                        `<strong>Catégorie :</strong> ${categoryName}`,
+                        `<strong>Expertise :</strong> ${req.body.expertise || 'Non spécifiée'}`,
+                        `<strong>Années d'expérience :</strong> ${req.body.yearsOfExperience || 'Non spécifiée'}`,
+                        `<strong>Adresse :</strong> ${address_line || ''}, ${postalCode || ''} ${city || ''}, ${state || ''} ${country || ''}`,
+                    ];
 
-                        // Le CV est déjà inclus dans le message via son URL
+                    if (cvUrl) {
+                        consultantInfoLines.push(`<strong>CV :</strong> <a href="${cvUrl}" target="_blank" style="color: #007bff; text-decoration: underline;">Télécharger le CV</a>`);
+                    }
+
+                    const consultantInfo = consultantInfoLines.join('<br>');
+
+                    const mailOptions: any = {
+                        from: 'Talenteed.io ' + process.env.MAILUSER,
+                        to: adminEmail,
+                        subject: 'Nouvelle inscription consultant à valider',
+                        template: 'index',
+                        context: {
+                            title: 'Nouvelle inscription consultant',
+                            message: `Un nouveau consultant s'est inscrit et attend votre validation :<br><br>${consultantInfo}<br><br>Connectez-vous à l'administration pour valider ce compte.`,
+                            host: process.env.FRONTEND_HOST,
+                            imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
+                            imageTitle: 'Action requise',
+                            backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
+                        },
+                    };
+
+                    // Le CV est déjà inclus dans le message via son URL
 
                     await transporter.sendMail(mailOptions);
                 } else {
                     // Pour les autres rôles : email de vérification classique
-                        await transporter.sendMail({
-                            from: 'Talenteed.io ' + process.env.MAILUSER,
-                            to: email,
-                            subject: 'Welcome',
-                            template: 'index',
-                            context: {
-                                title: `Hi ${newUser.firstname} ${newUser.lastname}`,
-                                message: `Thank you for signing up, you can verify your your email here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'authentication', 'account-validation', token as string)).toString()}`,
-                                host: process.env.FRONTEND_HOST,
-                                imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
-                                imageTitle: 'Welcome aboard',
-                                backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
-                            },
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    await transporter.sendMail({
+                        from: 'Talenteed.io ' + process.env.MAILUSER,
+                        to: email,
+                        subject: 'Welcome',
+                        template: 'index',
+                        context: {
+                            title: `Hi ${newUser.firstname} ${newUser.lastname}`,
+                            message: `Thank you for signing up, you can verify your your email here: ${new URL(path.join(process.env.FRONTEND_HOST as string, 'authentication', 'account-validation', token as string)).toString()}`,
+                            host: process.env.FRONTEND_HOST,
+                            imgUrl: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'main-150.png')).toString(),
+                            imageTitle: 'Welcome aboard',
+                            backgroundImg: new URL(path.join(process.env.HOST as string, 'public', 'assets', 'img', 'diversity-home.jpg')).toString(),
+                        },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     } as any);
                 }
             } catch (error) {
@@ -643,15 +647,15 @@ export const register = async (req: Request, res: Response) => {
 
             try {
                 if (role === 'talent') {
-                        const talent = (await Talent.findOne({ where: { id: newUser.talent.id }, relations: ['user'] })) as Talent;
+                    const talent = (await Talent.findOne({ where: { id: newUser.talent.id }, relations: ['user'] })) as Talent;
 
-                        const { fileUrl, fileName, fileType } = await generateConsentForTalent(talent, talent.user);
-                        const consent = Media.create({
-                            fileUrl,
-                            fileName,
-                            fileType,
-                        });
-                        await consent.save();
+                    const { fileUrl, fileName, fileType } = await generateConsentForTalent(talent, talent.user);
+                    const consent = Media.create({
+                        fileUrl,
+                        fileName,
+                        fileType,
+                    });
+                    await consent.save();
 
                     talent.consent = consent;
                     await talent.save();
@@ -663,9 +667,9 @@ export const register = async (req: Request, res: Response) => {
 
             // Pour les consultants, ne pas générer de token - compte en attente de validation
             if (role === 'consultant') {
-                res.status(200).json({ 
+                res.status(200).json({
                     msg: 'Inscription réussie. Votre compte est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
-                    pending: true 
+                    pending: true
                 });
             } else {
                 generateAccessToken(req, res, newUser);
@@ -882,13 +886,13 @@ export const me = async (req: Request, res: Response) => {
         res.status(401).json({ error: 'Not authenticated' });
         return;
     }
-    
+
     // Reload user with all relations to ensure consultant data is included
-    const user = await User.findOne({ 
-        where: { id: req.session.user.id }, 
-        relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture', 'hrFirstClub'] 
+    const user = await User.findOne({
+        where: { id: req.session.user.id },
+        relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture', 'hrFirstClub']
     });
-    
+
     if (user) {
         res.status(200).json({ user });
     } else {
@@ -920,17 +924,17 @@ export const googleAuth = async (req: Request, res: Response) => {
         }
 
         // Chercher un utilisateur existant avec cet email
-        const user = await User.findOne({ 
-            where: { email }, 
-            relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture'] 
+        const user = await User.findOne({
+            where: { email },
+            relations: ['admin', 'company.permission', 'referral', 'talent', 'talent.values', 'consultant', 'profilePicture']
         });
 
         if (user) {
             // Vérifier si c'est un consultant non validé
             if (user.consultant && !user.isVerified) {
-                res.status(403).json({ 
+                res.status(403).json({
                     msg: 'Votre compte consultant est en attente de validation par notre équipe. Vous recevrez un email dès que votre compte sera activé.',
-                    pending: true 
+                    pending: true
                 });
                 return;
             }
@@ -949,7 +953,7 @@ export const googleAuth = async (req: Request, res: Response) => {
             generateAccessToken(req, res, user, true);
         } else {
             // Aucun compte trouvé avec cet email
-            res.status(401).json({ 
+            res.status(401).json({
                 msg: 'Aucun compte trouvé avec cet email. Veuillez vous inscrire d\'abord.',
                 needsRegistration: true,
                 googleData: {
@@ -1008,7 +1012,7 @@ export const linkGoogleAccount = async (req: Request, res: Response) => {
         if (user) {
             user.googleId = googleId;
             await user.save();
-            
+
             res.status(200).json({ success: true, msg: 'Google account linked successfully!' });
         } else {
             res.status(404).json({ msg: 'User not found!' });
@@ -1032,7 +1036,7 @@ export const unlinkGoogleAccount = async (req: Request, res: Response) => {
         if (user) {
             user.googleId = null;
             await user.save();
-            
+
             res.status(200).json({ success: true, msg: 'Google account unlinked successfully!' });
         } else {
             res.status(404).json({ msg: 'User not found!' });
@@ -1081,7 +1085,7 @@ export const googleRegister = async (req: Request, res: Response) => {
         newUser.lastname = family_name || name?.split(' ').slice(1).join(' ') || 'Google';
         newUser.googleId = googleId;
         newUser.validateAt = new Date(); // Compte Google automatiquement validé
-        
+
         // Générer un mot de passe aléatoire (non utilisé pour les comptes Google)
         newUser.setPasswd(generateRandomPassword());
 
@@ -1126,7 +1130,7 @@ export const googleRegister = async (req: Request, res: Response) => {
             newUser.consultant = new Consultant();
             newUser.consultant.contact = new Contact();
             newUser.consultant.contact.phoneNumber = additionalData.phone;
-            
+
             // Les consultants doivent être validés
             newUser.isVerified = false;
         } else {
@@ -1154,9 +1158,9 @@ export const googleRegister = async (req: Request, res: Response) => {
 
         // Envoyer email de bienvenue ou de validation selon le rôle
         if (role === 'consultant') {
-            res.status(200).json({ 
+            res.status(200).json({
                 msg: 'Inscription réussie. Votre compte consultant est en attente de validation.',
-                pending: true 
+                pending: true
             });
         } else {
             // Générer les tokens pour les autres rôles
