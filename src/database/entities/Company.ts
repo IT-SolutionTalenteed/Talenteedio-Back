@@ -74,6 +74,34 @@ export class Company extends BaseEntity {
     @Column({ nullable: true })
     requiredExperience: string;
 
+    // Champs supplémentaires pour l'inscription complète
+    @Column({ type: 'varchar', length: '100', nullable: true })
+    companySize: string;
+
+    @Column({ type: 'int', nullable: true })
+    foundedYear: number;
+
+    @Column({ type: 'text', nullable: true })
+    companyDescription: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    website: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    sector: string;
+
+    @Column({ type: 'varchar', length: '100', nullable: true })
+    country: string;
+
+    @Column({ type: 'varchar', length: '100', nullable: true })
+    city: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    address: string;
+
+    @Column({ type: 'varchar', length: '20', nullable: true })
+    postalCode: string;
+
     @CreateDateColumn()
     createdAt: Date; // Creation date
 }

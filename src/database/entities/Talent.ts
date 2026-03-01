@@ -146,6 +146,33 @@ export class Talent extends BaseEntity {
     @Column({ nullable: true })
     city: string;
 
+    @Column({ type: 'int', nullable: true })
+    yearsOfExperience: number;
+
+    @Column({ type: 'text', nullable: true })
+    competences: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    address: string;
+
+    @Column({ type: 'varchar', length: '20', nullable: true })
+    postalCode: string;
+
+    @Column({ type: 'text', nullable: true })
+    formations: string;
+
+    @Column({ type: 'varchar', length: '100', nullable: true })
+    salaryRange: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    desiredWorkLocation: string;
+
+    @Column({ type: 'varchar', length: '100', nullable: true })
+    desiredContractType: string;
+
+    @Column({ type: 'varchar', length: '255', nullable: true })
+    desiredCompanyType: string;
+
     @CreateDateColumn()
     createdAt: Date; // Creation date
 }

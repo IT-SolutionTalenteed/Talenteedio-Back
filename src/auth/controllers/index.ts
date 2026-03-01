@@ -213,8 +213,10 @@ export const register = async (req: Request, res: Response) => {
             company_name, contactEmail, categoryId, address_line, postalCode, city, state, country, logoId,
             // Nouveaux champs Talent
             currentSalary, experience, skills, languages, education, desiredSector, interests, desiredPosition, desiredSalary, availability,
+            annualSalary, yearsOfExperience, competences, address, formations, salaryRange, desiredWorkLocation, desiredContractType, desiredCompanyType,
             // Nouveaux champs Company
-            foundedDate, employeeCount, profileSought, positionsToFill, requiredSkills, requiredExperience
+            foundedDate, employeeCount, profileSought, positionsToFill, requiredSkills, requiredExperience,
+            companySize, foundedYear, companyDescription, website, sector
         } = {
             firstname: req.body.firstname ? ent.encode(req.body.firstname) : null,
             lastname: req.body.lastname ? ent.encode(req.body.lastname) : null,
@@ -250,6 +252,16 @@ export const register = async (req: Request, res: Response) => {
             desiredPosition: req.body.desiredPosition ? ent.encode(req.body.desiredPosition) : null,
             desiredSalary: req.body.desiredSalary ? ent.encode(req.body.desiredSalary) : null,
             availability: req.body.availability ? ent.encode(req.body.availability) : null,
+            // Champs supplémentaires pour l'inscription complète
+            annualSalary: req.body.annualSalary ? parseFloat(req.body.annualSalary) : null,
+            yearsOfExperience: req.body.yearsOfExperience ? parseInt(req.body.yearsOfExperience) : null,
+            competences: req.body.competences ? ent.encode(req.body.competences) : null,
+            address: req.body.address ? ent.encode(req.body.address) : null,
+            formations: req.body.formations ? ent.encode(req.body.formations) : null,
+            salaryRange: req.body.salaryRange ? ent.encode(req.body.salaryRange) : null,
+            desiredWorkLocation: req.body.desiredWorkLocation ? ent.encode(req.body.desiredWorkLocation) : null,
+            desiredContractType: req.body.desiredContractType ? ent.encode(req.body.desiredContractType) : null,
+            desiredCompanyType: req.body.desiredCompanyType ? ent.encode(req.body.desiredCompanyType) : null,
             // Nouveaux champs Company
             foundedDate: req.body.foundedDate ? ent.encode(req.body.foundedDate) : null,
             employeeCount: req.body.employeeCount ? ent.encode(req.body.employeeCount) : null,
@@ -257,12 +269,17 @@ export const register = async (req: Request, res: Response) => {
             positionsToFill: req.body.positionsToFill ? ent.encode(req.body.positionsToFill) : null,
             requiredSkills: req.body.requiredSkills ? ent.encode(req.body.requiredSkills) : null,
             requiredExperience: req.body.requiredExperience ? ent.encode(req.body.requiredExperience) : null,
+            // Champs supplémentaires pour l'inscription complète
+            companySize: req.body.companySize ? ent.encode(req.body.companySize) : null,
+            foundedYear: req.body.foundedYear ? parseInt(req.body.foundedYear) : null,
+            companyDescription: req.body.companyDescription ? ent.encode(req.body.companyDescription) : null,
+            website: req.body.website ? ent.encode(req.body.website) : null,
+            sector: req.body.sector ? ent.encode(req.body.sector) : null,
         };
 
         // Error handling
-        console.log('[REGISTER] Validating fields for role:', role, { email, firstname, lastname, phone, cvId, categoryId });
+        console.log('[REGISTER] Validating fields for role:', role, { email, firstname, lastname, phone, categoryId });
         if (!email || !password || !confirmationPassword || !lastname || !firstname || !role || !phone
-            || (role === 'talent' && (values.length === 0 || !cvId))
             || (role === 'consultant' && !cvId)
             || (role === 'company' && !company_name)
         ) {
@@ -341,6 +358,18 @@ export const register = async (req: Request, res: Response) => {
                 if (country !== null) newUser.talent.country = country;
                 if (city !== null) newUser.talent.city = city;
                 if (workMode !== null) newUser.talent.workMode = workMode as any;
+                
+                // Champs supplémentaires pour l'inscription complète
+                if (annualSalary !== null) newUser.talent.annualSalary = annualSalary;
+                if (yearsOfExperience !== null) newUser.talent.yearsOfExperience = yearsOfExperience;
+                if (competences !== null) newUser.talent.competences = competences;
+                if (address !== null) newUser.talent.address = address;
+                if (postalCode !== null) newUser.talent.postalCode = postalCode;
+                if (formations !== null) newUser.talent.formations = formations;
+                if (salaryRange !== null) newUser.talent.salaryRange = salaryRange;
+                if (desiredWorkLocation !== null) newUser.talent.desiredWorkLocation = desiredWorkLocation;
+                if (desiredContractType !== null) newUser.talent.desiredContractType = desiredContractType;
+                if (desiredCompanyType !== null) newUser.talent.desiredCompanyType = desiredCompanyType;
             } else if (role === 'consultant') {
                 console.log('[REGISTER] Creating consultant with cvId:', cvId);
                 newUser.consultant = new Consultant();
@@ -435,6 +464,17 @@ export const register = async (req: Request, res: Response) => {
                 if (positionsToFill !== null) newUser.company.positionsToFill = positionsToFill;
                 if (requiredSkills !== null) newUser.company.requiredSkills = requiredSkills;
                 if (requiredExperience !== null) newUser.company.requiredExperience = requiredExperience;
+                
+                // Champs supplémentaires pour l'inscription complète
+                if (companySize !== null) newUser.company.companySize = companySize;
+                if (foundedYear !== null) newUser.company.foundedYear = foundedYear;
+                if (companyDescription !== null) newUser.company.companyDescription = companyDescription;
+                if (website !== null) newUser.company.website = website;
+                if (sector !== null) newUser.company.sector = sector;
+                if (country !== null) newUser.company.country = country;
+                if (city !== null) newUser.company.city = city;
+                if (address !== null) newUser.company.address = address;
+                if (postalCode !== null) newUser.company.postalCode = postalCode;
             }
 
             // Then save contact and role-specific entity
@@ -476,7 +516,7 @@ export const register = async (req: Request, res: Response) => {
             }
 
             console.log('[REGISTER] Creating CV if needed');
-            if (role === 'talent') {
+            if (role === 'talent' && cvId) {
                 const cv = Object.assign(new CV(), { file: { id: cvId }, title: `${newUser.firstname} ${newUser.lastname}` }) as CV;
                 cv.talent = newUser.talent;
                 await queryRunner.manager.save(cv);
