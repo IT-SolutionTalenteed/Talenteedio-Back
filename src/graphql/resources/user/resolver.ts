@@ -1,6 +1,6 @@
 import { HrFirstClub } from './../../../database/entities/HrFirstClub';
 import { composeResolvers } from '@graphql-tools/resolvers-composition';
-import { FindManyOptions, In, IsNull, Like } from 'typeorm';
+import { FindManyOptions, In, IsNull, Like, Not } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 import bcrypt from 'bcrypt';
 
@@ -32,7 +32,7 @@ const resolver = {
             try {
                 let filters: FindManyOptions<User> | undefined = undefined;
 
-                if (args.filter?.name || args.filter?.email || args.filter?.withoutRole) {
+                if (args.filter?.name || args.filter?.email || args.filter?.withoutRole || args.filter?.roles) {
                     const firstnameConditions = args.filter.name ? { firstname: Like(`%${args.filter.name}%`) } : {};
                     const lastnameConditions = args.filter.name ? { lastname: Like(`%${args.filter.name}%`) } : {};
                     const emailConditions = args.filter.email ? { email: Like(`%${args.filter.email}%`) } : {};
@@ -46,11 +46,30 @@ const resolver = {
                         }
                         : {};
 
+                    // Filtre par rôles
+                    const roleConditions: any = {};
+                    if (args.filter.roles && args.filter.roles.length > 0) {
+                        // Pour chaque rôle demandé, on vérifie que la relation correspondante n'est pas nulle
+                        args.filter.roles.forEach(role => {
+                            if (role === 'talent') {
+                                roleConditions.talent = { id: Not(IsNull()) };
+                            } else if (role === 'company') {
+                                roleConditions.company = { id: Not(IsNull()) };
+                            } else if (role === 'admin') {
+                                roleConditions.admin = { id: Not(IsNull()) };
+                            } else if (role === 'referral') {
+                                roleConditions.referral = { id: Not(IsNull()) };
+                            } else if (role === 'consultant') {
+                                roleConditions.consultant = { id: Not(IsNull()) };
+                            }
+                        });
+                    }
+
                     filters = {
                         where: [
-                            { ...firstnameConditions, ...nullConditions },
-                            { ...lastnameConditions, ...nullConditions },
-                            { ...emailConditions, ...nullConditions },
+                            { ...firstnameConditions, ...nullConditions, ...roleConditions },
+                            { ...lastnameConditions, ...nullConditions, ...roleConditions },
+                            { ...emailConditions, ...nullConditions, ...roleConditions },
                         ],
                     };
                 }
