@@ -204,6 +204,15 @@ extend type Query {
     getProfileAppointments(matchingProfileId: ID!): [CompanyAppointment!]!
     getAvailableSectors: [Category!]!
     getAvailableSkills: [Skill!]!
+    getCompaniesWithFeedbacks: [CompanyWithFeedbacks!]!
+    getCompanyFeedbacks(companyId: ID!): [CompanyAppointment!]!
+}
+
+type CompanyWithFeedbacks {
+    id: ID!
+    company_name: String!
+    logo: Media
+    feedbackCount: Int!
 }
 
 type Skill {

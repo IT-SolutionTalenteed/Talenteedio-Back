@@ -233,6 +233,72 @@ export default {
 
             return appointments;
         },
+
+        // Récupérer toutes les entreprises avec le nombre de feedbacks reçus
+        getCompaniesWithFeedbacks: async (_: any, __: any, context: any): Promise<any[]> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            // Vérifier que l'utilisateur est admin
+            const isAdmin = user.roles?.some(role => role.name === 'admin');
+            if (!isAdmin) {
+                throw createGraphQLError('Forbidden: Admin access required', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+            }
+
+            // Récupérer toutes les entreprises
+            const companies = await Company.find({
+                relations: ['logo'],
+                order: { company_name: 'ASC' },
+            });
+
+            // Pour chaque entreprise, compter les feedbacks reçus
+            const companiesWithFeedbacks = await Promise.all(
+                companies.map(async (company) => {
+                    const feedbackCount = await CompanyAppointment.count({
+                        where: {
+                            companyId: company.id,
+                            status: AppointmentStatus.COMPLETED,
+                            feedbackSubmitted: true,
+                        },
+                    });
+
+                    return {
+                        id: company.id,
+                        company_name: company.company_name,
+                        logo: company.logo,
+                        feedbackCount,
+                    };
+                })
+            );
+
+            return companiesWithFeedbacks;
+        },
+
+        // Récupérer tous les feedbacks d'une entreprise
+        getCompanyFeedbacks: async (_: any, args: { companyId: string }, context: any): Promise<CompanyAppointment[]> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            // Vérifier que l'utilisateur est admin
+            const isAdmin = user.roles?.some(role => role.name === 'admin');
+            if (!isAdmin) {
+                throw createGraphQLError('Forbidden: Admin access required', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+            }
+
+            return await CompanyAppointment.find({
+                where: {
+                    companyId: args.companyId,
+                    status: AppointmentStatus.COMPLETED,
+                    feedbackSubmitted: true,
+                },
+                relations: ['user'],
+                order: { feedbackSubmittedAt: 'DESC' },
+            });
+        },
     },
 
     Mutation: {
