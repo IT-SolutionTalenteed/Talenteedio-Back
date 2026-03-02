@@ -911,7 +911,7 @@ export default {
             // Mettre à jour le feedback
             appointment.candidateFeedback = args.feedback;
             appointment.candidateDecision = args.decision.toLowerCase();
-            appointment.candidateRating = args.rating;
+            appointment.candidateRating = args.rating ?? null;
             appointment.feedbackSubmitted = true;
             appointment.feedbackSubmittedAt = new Date();
 

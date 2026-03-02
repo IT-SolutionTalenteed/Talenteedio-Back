@@ -78,7 +78,7 @@ export class CompanyAppointment extends BaseEntity {
     candidateDecision: string; // 'go' ou 'not' - décision du candidat
 
     @Column({ type: 'int', nullable: true })
-    candidateRating: number; // Note de 1 à 5
+    candidateRating: number | null; // Note de 1 à 5
 
     @Column({ type: 'timestamp', nullable: true })
     feedbackSubmittedAt: Date; // Date de soumission du feedback
