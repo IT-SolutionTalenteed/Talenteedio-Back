@@ -22,6 +22,7 @@ import favoriteSchema from './favorite';
 import companyPlanSchema from './company-plan';
 import companySchema from './company';
 import matchingProfileSchema from './matching-profile/schema';
+import newsletterSchema from './newsletter';
 
 export {
     mailerSchema,
@@ -48,4 +49,5 @@ export {
     companyPlanSchema,
     companySchema,
     matchingProfileSchema,
+    newsletterSchema,
 };

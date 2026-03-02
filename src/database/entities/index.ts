@@ -43,3 +43,4 @@ export { MatchingProfile, MatchingProfileStatus } from './MatchingProfile';
 export { CompanyMatch } from './CompanyMatch';
 export { JobMatch } from './JobMatch';
 export { CompanyAppointment, AppointmentStatus } from './CompanyAppointment';
+export { Newsletter, NEWSLETTER_STATUS, NEWSLETTER_RECIPIENT_TYPE } from './Newsletter';

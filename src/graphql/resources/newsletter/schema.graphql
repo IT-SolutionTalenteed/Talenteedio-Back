@@ -1,0 +1,125 @@
+# import PaginationInput from '../../type.graphql'
+# import User from '../user/schema.graphql'
+
+scalar Date
+
+type Query {
+    getNewsletters(input: PaginationInput, filter: NewsletterFilter): PaginateNewsletter
+    getOneNewsletter(input: GetOneNewsletterInput!): Newsletter
+    countNewsletterRecipients(input: CountRecipientsInput!): Int!
+}
+
+type Mutation {
+    createNewsletter(input: CreateNewsletterInput!): Newsletter
+    updateNewsletter(input: UpdateNewsletterInput!): Newsletter
+    deleteNewsletter(input: DeleteNewsletterInput!): DeleteNewsletterResponse
+    sendNewsletter(input: SendNewsletterInput!): Newsletter
+}
+
+enum NewsletterStatus {
+    draft
+    scheduled
+    sending
+    sent
+    failed
+}
+
+enum NewsletterRecipientType {
+    all_companies
+    all_talents
+    all_consultants
+    talents_with_active_appointments
+    talents_without_appointments
+    talents_with_recent_applications
+    talents_without_applications
+    companies_with_active_jobs
+    companies_without_jobs
+    verified_users
+    unverified_users
+    custom
+}
+
+type Newsletter {
+    id: String!
+    subject: String!
+    message: String!
+    htmlMessage: String
+    status: NewsletterStatus!
+    recipientTypes: [NewsletterRecipientType!]!
+    customRecipientEmails: [String!]
+    attachments: [NewsletterAttachment!]
+    totalRecipients: Int!
+    sentCount: Int!
+    failedCount: Int!
+    scheduledAt: Date
+    sentAt: Date
+    createdBy: User!
+    createdAt: Date!
+    updatedAt: Date!
+}
+
+type NewsletterAttachment {
+    filename: String!
+    path: String!
+    contentType: String!
+}
+
+input NewsletterAttachmentInput {
+    filename: String!
+    path: String!
+    contentType: String!
+}
+
+input CreateNewsletterInput {
+    subject: String!
+    message: String!
+    htmlMessage: String
+    recipientTypes: [NewsletterRecipientType!]!
+    customRecipientEmails: [String!]
+    attachments: [NewsletterAttachmentInput!]
+    scheduledAt: Date
+}
+
+input UpdateNewsletterInput {
+    id: String!
+    subject: String
+    message: String
+    htmlMessage: String
+    recipientTypes: [NewsletterRecipientType!]
+    customRecipientEmails: [String!]
+    attachments: [NewsletterAttachmentInput!]
+    scheduledAt: Date
+}
+
+input DeleteNewsletterInput {
+    id: String!
+}
+
+input SendNewsletterInput {
+    id: String!
+}
+
+input GetOneNewsletterInput {
+    id: String!
+}
+
+input CountRecipientsInput {
+    recipientTypes: [NewsletterRecipientType!]!
+    customRecipientEmails: [String!]
+}
+
+input NewsletterFilter {
+    subject: String
+    status: NewsletterStatus
+}
+
+type PaginateNewsletter {
+    rows: [Newsletter]!
+    total: Int!
+    page: Int
+    limit: Int
+}
+
+type DeleteNewsletterResponse {
+    success: Boolean!
+}

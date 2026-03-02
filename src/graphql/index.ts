@@ -27,6 +27,7 @@ import {
     companyPlanSchema,
     companySchema,
     matchingProfileSchema,
+    newsletterSchema,
 } from './resources';
 
 dotenv.config();
@@ -60,6 +61,15 @@ graphqlRouter.use('/favorite', createYoga({ schema: favoriteSchema, graphqlEndpo
 graphqlRouter.use('/company-plan', createYoga({ schema: companyPlanSchema, graphqlEndpoint: '/api/company-plan', graphiql }));
 graphqlRouter.use('/company', createYoga({ schema: companySchema, graphqlEndpoint: '/api/company', graphiql }));
 graphqlRouter.use('/matching-profile', createYoga({ schema: matchingProfileSchema, graphqlEndpoint: '/api/matching-profile', graphiql }));
+graphqlRouter.use('/newsletter', (req, res, next) => {
+    const yoga = createYoga({ 
+        schema: newsletterSchema, 
+        graphqlEndpoint: '/api/newsletter', 
+        graphiql,
+        context: { req, res }
+    });
+    yoga(req, res);
+});
 
 // Catch-all route for /api - return helpful error message
 graphqlRouter.all('/', (req, res) => {
@@ -90,6 +100,7 @@ graphqlRouter.all('/', (req, res) => {
             '/api/company-plan',
             '/api/company',
             '/api/matching-profile',
+            '/api/newsletter',
             '/api/mailer'
         ]
     });
