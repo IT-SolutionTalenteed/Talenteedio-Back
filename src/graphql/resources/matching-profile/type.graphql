@@ -88,6 +88,49 @@ type CompanyMatch {
     createdAt: String!
 }
 
+type JobMatch {
+    id: ID!
+    matchingProfileId: String!
+    matchingProfile: MatchingProfile
+    jobId: String!
+    job: Job
+    matchScore: Float!
+    matchDetails: MatchDetails
+    isSelected: Boolean!
+    createdAt: String!
+}
+
+type Job {
+    id: ID!
+    title: String!
+    slug: String!
+    content: String!
+    expirationDate: String!
+    status: String!
+    company: Company!
+    category: Category
+    location: Location
+    jobType: JobType
+    skills: [Skill!]
+    salaryMin: Float
+    salaryMax: Float
+    salaryType: String
+    experience: Int
+    isFeatured: Boolean!
+    isUrgent: Boolean!
+    createdAt: String!
+}
+
+type Location {
+    id: ID!
+    name: String!
+}
+
+type JobType {
+    id: ID!
+    name: String!
+}
+
 type MatchDetails {
     overall_match_percentage: Float!
     criteria_scores: [MatchCriterion!]
@@ -151,6 +194,7 @@ extend type Query {
     getMyMatchingProfiles: [MatchingProfile!]!
     getMatchingProfile(id: ID!): MatchingProfile!
     getMatchedCompanies(matchingProfileId: ID!): [CompanyMatch!]!
+    getMatchedJobs(matchingProfileId: ID!): [JobMatch!]!
     getProfileAppointments(matchingProfileId: ID!): [CompanyAppointment!]!
     getAvailableSectors: [Category!]!
     getAvailableSkills: [Skill!]!

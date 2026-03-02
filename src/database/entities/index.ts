@@ -41,4 +41,5 @@ export { EventParticipationRequest, PARTICIPATION_REQUEST_STATUS } from './Event
 export { EventUserReservation, RESERVATION_STATUS } from './EventUserReservation';
 export { MatchingProfile, MatchingProfileStatus } from './MatchingProfile';
 export { CompanyMatch } from './CompanyMatch';
+export { JobMatch } from './JobMatch';
 export { CompanyAppointment, AppointmentStatus } from './CompanyAppointment';

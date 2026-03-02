@@ -69,11 +69,6 @@ Description: ${input.companyDescription}
             args.push('--job-skills', input.profileSkills.join(','));
         }
         
-        // Ajouter les centres d'intérêt comme contexte supplémentaire
-        if (input.profileInterests && input.profileInterests.length > 0) {
-            args.push('--candidate-interests', input.profileInterests.join(','));
-        }
-        
         console.log(`[AI Matching] Starting match for: ${input.companyName}`);
         console.log(`[AI Matching] Jobs count: ${input.companyJobs?.length || 0}`);
         
