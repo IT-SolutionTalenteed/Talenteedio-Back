@@ -23,6 +23,7 @@ import { initSentry } from './sentry';
 import { CronJob } from 'cron';
 import { checkJobExpiration } from './scripts/job/services';
 import { AppointmentReminderService } from './services/appointment-reminder.service';
+import { AppointmentFeedbackService } from './services/appointment-feedback.service';
 
 dotenv.config();
 
@@ -251,6 +252,10 @@ const serve = async () => {
         // Démarrer le service de rappel automatique des entretiens (après l'initialisation de la DB)
         AppointmentReminderService.startReminderService();
         console.log('✅ Appointment reminder service started');
+        
+        // Démarrer le service de feedback automatique des entretiens
+        AppointmentFeedbackService.startFeedbackService();
+        console.log('✅ Appointment feedback service started');
     } catch (error) {
         console.log(error);
     }

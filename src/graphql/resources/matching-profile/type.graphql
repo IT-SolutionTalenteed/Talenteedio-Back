@@ -161,6 +161,12 @@ type CompanyAppointment {
     rejectionReason: String
     status: String!
     reminderSent: Boolean!
+    feedbackEmailSent: Boolean!
+    feedbackSubmitted: Boolean!
+    candidateFeedback: String
+    candidateDecision: String
+    candidateRating: Int
+    feedbackSubmittedAt: String
     createdAt: String!
     updatedAt: String!
 }
@@ -213,6 +219,7 @@ extend type Mutation {
     createCompanyAppointment(input: CompanyAppointmentInput!): CompanyAppointment!
     cancelAppointment(appointmentId: ID!): CompanyAppointment!
     updateAppointmentStatus(appointmentId: ID!, status: String!, companyNotes: String, rejectionReason: String): CompanyAppointment!
+    submitAppointmentFeedback(appointmentId: ID!, feedback: String!, decision: String!, rating: Int): CompanyAppointment!
 }
 
 extend type Query {

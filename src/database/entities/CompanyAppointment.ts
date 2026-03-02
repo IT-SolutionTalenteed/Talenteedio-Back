@@ -65,6 +65,24 @@ export class CompanyAppointment extends BaseEntity {
     @Column({ type: 'boolean', default: false })
     reminderSent: boolean; // Rappel envoyé 30 min avant
 
+    @Column({ type: 'boolean', default: false })
+    feedbackEmailSent: boolean; // Email de feedback envoyé
+
+    @Column({ type: 'boolean', default: false })
+    feedbackSubmitted: boolean; // Feedback soumis par le candidat
+
+    @Column({ type: 'text', nullable: true })
+    candidateFeedback: string; // Feedback du candidat
+
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    candidateDecision: string; // 'go' ou 'not' - décision du candidat
+
+    @Column({ type: 'int', nullable: true })
+    candidateRating: number; // Note de 1 à 5
+
+    @Column({ type: 'timestamp', nullable: true })
+    feedbackSubmittedAt: Date; // Date de soumission du feedback
+
     @CreateDateColumn()
     createdAt: Date;
 

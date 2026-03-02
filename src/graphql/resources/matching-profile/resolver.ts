@@ -870,5 +870,65 @@ export default {
 
             return updatedAppointment;
         },
+
+        // Soumettre le feedback d'un entretien
+        submitAppointmentFeedback: async (_: any, args: { appointmentId: string; feedback: string; decision: string; rating?: number }, context: any): Promise<CompanyAppointment> => {
+            const user = context.req?.session?.user as User;
+            if (!user) {
+                throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
+            }
+
+            const appointment = await CompanyAppointment.findOne({
+                where: { id: args.appointmentId, userId: user.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user'],
+            });
+
+            if (!appointment) {
+                throw createGraphQLError('Appointment not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+            }
+
+            // Vérifier que l'entretien est terminé
+            if (appointment.status !== AppointmentStatus.COMPLETED) {
+                throw createGraphQLError('Cannot submit feedback for an appointment that is not completed', { 
+                    extensions: { statusCode: 400, statusText: BAD_REQUEST } 
+                });
+            }
+
+            // Valider la décision
+            if (!['go', 'not'].includes(args.decision.toLowerCase())) {
+                throw createGraphQLError('Invalid decision. Must be "go" or "not"', { 
+                    extensions: { statusCode: 400, statusText: BAD_REQUEST } 
+                });
+            }
+
+            // Valider le rating si fourni
+            if (args.rating !== undefined && (args.rating < 1 || args.rating > 5)) {
+                throw createGraphQLError('Invalid rating. Must be between 1 and 5', { 
+                    extensions: { statusCode: 400, statusText: BAD_REQUEST } 
+                });
+            }
+
+            // Mettre à jour le feedback
+            appointment.candidateFeedback = args.feedback;
+            appointment.candidateDecision = args.decision.toLowerCase();
+            appointment.candidateRating = args.rating;
+            appointment.feedbackSubmitted = true;
+            appointment.feedbackSubmittedAt = new Date();
+
+            await appointment.save();
+
+            console.log(`[submitAppointmentFeedback] Feedback submitted for appointment ${appointment.id} by user ${user.id}`);
+
+            const updatedAppointment = await CompanyAppointment.findOne({
+                where: { id: appointment.id },
+                relations: ['company', 'company.logo', 'company.contact', 'user'],
+            });
+
+            if (!updatedAppointment) {
+                throw createGraphQLError('Failed to update appointment', { extensions: { statusCode: 500 } });
+            }
+
+            return updatedAppointment;
+        },
     },
 };
