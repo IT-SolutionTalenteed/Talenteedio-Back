@@ -887,13 +887,6 @@ export default {
                 throw createGraphQLError('Appointment not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
             }
 
-            // Vérifier que l'entretien est terminé
-            if (appointment.status !== AppointmentStatus.COMPLETED) {
-                throw createGraphQLError('Cannot submit feedback for an appointment that is not completed', { 
-                    extensions: { statusCode: 400, statusText: BAD_REQUEST } 
-                });
-            }
-
             // Valider la décision
             if (!['go', 'not'].includes(args.decision.toLowerCase())) {
                 throw createGraphQLError('Invalid decision. Must be "go" or "not"', { 
@@ -914,6 +907,11 @@ export default {
             appointment.candidateRating = args.rating ?? null;
             appointment.feedbackSubmitted = true;
             appointment.feedbackSubmittedAt = new Date();
+            
+            // Marquer l'entretien comme terminé si ce n'est pas déjà le cas
+            if (appointment.status !== AppointmentStatus.COMPLETED) {
+                appointment.status = AppointmentStatus.COMPLETED;
+            }
 
             await appointment.save();
 
