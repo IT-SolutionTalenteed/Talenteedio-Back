@@ -2,7 +2,6 @@ import { HrFirstClub } from './../../../database/entities/HrFirstClub';
 import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like, Not } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
-import bcrypt from 'bcrypt';
 
 import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
@@ -732,10 +731,14 @@ const resolver = {
                     user.email = args.input.user.email;
                     user.firstname = args.input.user.firstname || args.input.company_name;
                     user.lastname = args.input.user.lastname || '';
-                    user.password = await bcrypt.hash(args.input.user.password, 10);
+                    // IMPORTANT: Ne pas hacher le mot de passe ici car il est déjà en clair
+                    // et sera utilisé pour l'envoi d'email. Le hachage se fait automatiquement
+                    // via le BeforeInsert hook dans l'entité User
+                    user.password = args.input.user.password;
                     user.validateAt = new Date();
 
-                    await queryRunner.manager.save(user);
+                    // NE PAS sauvegarder l'utilisateur ici - on le sauvegarde après avoir lié la company
+                    // pour éviter un double hachage du mot de passe
                 }
 
                 // Créer la company
@@ -774,7 +777,8 @@ const resolver = {
 
                 await queryRunner.manager.save(company);
 
-                // Lier l'utilisateur à la company
+                // Lier l'utilisateur à la company AVANT de sauvegarder l'utilisateur
+                // pour éviter un double hachage du mot de passe
                 user.company = company;
                 await queryRunner.manager.save(user);
 

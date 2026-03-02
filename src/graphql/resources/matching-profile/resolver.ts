@@ -125,7 +125,10 @@ export default {
             }
 
             // Vérifier que l'utilisateur est admin
-            // TODO: Ajouter une vérification de rôle appropriée
+            const isAdmin = user.roles?.some(role => role.name === 'admin');
+            if (!isAdmin) {
+                throw createGraphQLError('Forbidden: Admin access required', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+            }
             
             return await CompanyAppointment.find({
                 relations: ['company', 'company.logo', 'company.contact', 'user', 'matchingProfile'],

@@ -115,8 +115,8 @@ export class Company extends BaseEntity {
     @Column({ type: 'varchar', length: '255', nullable: true })
     phone: string;
 
-    @Column({ type: 'varchar', length: '255', nullable: true })
-    email: string;
+    // Note: L'email est stocké dans la table User, pas ici
+    // Pour accéder à l'email: company.user.email
 
     // Champs secteur/industrie
     @Column({ type: 'varchar', length: '255', nullable: true })
