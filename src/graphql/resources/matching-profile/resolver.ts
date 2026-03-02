@@ -441,8 +441,8 @@ export default {
                         companyJobs,
                     });
 
-                    // Ne sauvegarder que les matchs avec un score >= 40%
-                    if (matchResult.overall_match_percentage >= 40) {
+                    // Ne sauvegarder que les matchs avec un score >= 30%
+                    if (matchResult.overall_match_percentage >= 30) {
                         if (!match) {
                             match = new CompanyMatch();
                             match.matchingProfileId = profile.id;
@@ -457,9 +457,9 @@ export default {
                         
                         console.log(`✓ Company match saved: ${company.company_name} - ${matchResult.overall_match_percentage}%`);
                     } else {
-                        console.log(`✗ Company match rejected (score < 40%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                        console.log(`✗ Company match rejected (score < 30%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
                         
-                        // Supprimer le match existant s'il est en dessous de 40%
+                        // Supprimer le match existant s'il est en dessous de 30%
                         if (match && match.id) {
                             await CompanyMatch.delete(match.id);
                         }
@@ -497,8 +497,8 @@ export default {
                                 jobSkills: jobSkills,
                             });
 
-                            // Ne sauvegarder que les matchs avec un score >= 40%
-                            if (jobMatchResult.overall_match_percentage >= 40) {
+                            // Ne sauvegarder que les matchs avec un score >= 30%
+                            if (jobMatchResult.overall_match_percentage >= 30) {
                                 if (!jobMatch) {
                                     jobMatch = new JobMatch();
                                     jobMatch.matchingProfileId = profile.id;
@@ -512,10 +512,52 @@ export default {
                                 jobMatches.push(jobMatch);
                                 
                                 console.log(`  ✓ Job match saved: ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
+
+                                // Si un job matche, créer aussi un CompanyMatch pour l'entreprise (si pas déjà existant avec un bon score)
+                                let companyMatch = await CompanyMatch.findOne({
+                                    where: {
+                                        matchingProfileId: profile.id,
+                                        companyId: company.id,
+                                    },
+                                });
+
+                                // Si pas de CompanyMatch ou si le score est inférieur au score du job, créer/mettre à jour
+                                if (!companyMatch || companyMatch.matchScore < jobMatchResult.overall_match_percentage) {
+                                    if (!companyMatch) {
+                                        companyMatch = new CompanyMatch();
+                                        companyMatch.matchingProfileId = profile.id;
+                                        companyMatch.companyId = company.id;
+                                    }
+
+                                    // Utiliser le meilleur score entre le job et le match entreprise existant
+                                    companyMatch.matchScore = Math.max(
+                                        jobMatchResult.overall_match_percentage,
+                                        companyMatch.matchScore || 0
+                                    );
+                                    
+                                    companyMatch.matchDetails = {
+                                        overall_match_percentage: companyMatch.matchScore,
+                                        criteria_scores: jobMatchResult.criteria_scores || [],
+                                        strengths: [
+                                            ...(jobMatchResult.strengths || []),
+                                            `Offre d'emploi correspondante: ${job.title}`
+                                        ],
+                                        gaps: jobMatchResult.gaps || [],
+                                        recommendation: `Cette entreprise a publié une offre (${job.title}) qui correspond à votre profil à ${jobMatchResult.overall_match_percentage}%`
+                                    };
+
+                                    await companyMatch.save();
+                                    
+                                    // Ajouter à la liste si pas déjà présent
+                                    if (!companyMatches.find(cm => cm.companyId === company.id)) {
+                                        companyMatches.push(companyMatch);
+                                        console.log(`  ✓ Company match created/updated from job: ${company.company_name} - ${companyMatch.matchScore}%`);
+                                    }
+                                }
                             } else {
-                                console.log(`  ✗ Job match rejected (score < 40%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
+                                console.log(`  ✗ Job match rejected (score < 30%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
                                 
-                                // Supprimer le match existant s'il est en dessous de 40%
+                                // Supprimer le match existant s'il est en dessous de 30%
                                 if (jobMatch && jobMatch.id) {
                                     await JobMatch.delete(jobMatch.id);
                                 }
@@ -538,7 +580,7 @@ export default {
             return {
                 success: true,
                 matchCount: companyMatches.length + jobMatches.length,
-                message: `${companyMatches.length} entreprises et ${jobMatches.length} offres d'emploi matchées avec succès (score ≥ 40%)`,
+                message: `${companyMatches.length} entreprises et ${jobMatches.length} offres d'emploi matchées avec succès (score ≥ 30%)`,
             };
         },
 
