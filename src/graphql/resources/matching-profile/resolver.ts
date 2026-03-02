@@ -639,17 +639,25 @@ export default {
                 throw createGraphQLError('Company not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
             }
 
-            // Vérifier qu'il n'y a pas déjà un rendez-vous avec cette entreprise (non annulé)
+            // Vérifier qu'il n'y a pas déjà un rendez-vous actif avec cette entreprise
+            // On autorise uniquement un rendez-vous pending ou confirmed à la fois
             const existingAppointment = await CompanyAppointment.findOne({
                 where: {
                     userId: user.id,
                     companyId: companyId,
-                    status: Not(AppointmentStatus.CANCELLED)
+                    status: In([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED])
                 }
             });
 
             if (existingAppointment) {
-                throw createGraphQLError('Vous avez déjà un rendez-vous avec cette entreprise', { 
+                console.log(`[createCompanyAppointment] Duplicate appointment found:`, {
+                    appointmentId: existingAppointment.id,
+                    companyId: existingAppointment.companyId,
+                    status: existingAppointment.status,
+                    date: existingAppointment.appointmentDate,
+                    userId: user.id
+                });
+                throw createGraphQLError('Vous avez déjà un rendez-vous actif avec cette entreprise', { 
                     extensions: { statusCode: 400, statusText: 'DUPLICATE_APPOINTMENT' } 
                 });
             }
@@ -659,7 +667,7 @@ export default {
                 where: {
                     appointmentDate: new Date(appointmentDate),
                     appointmentTime: appointmentTime,
-                    status: Not(AppointmentStatus.CANCELLED)
+                    status: In([AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED])
                 }
             });
 

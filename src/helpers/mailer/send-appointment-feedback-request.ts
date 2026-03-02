@@ -26,7 +26,7 @@ export async function sendAppointmentFeedbackRequest(data: AppointmentFeedbackRe
     day: 'numeric',
   });
 
-  const feedbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/matching-profile?feedback=${appointmentId}`;
+  const feedbackUrl = `${process.env.FRONTEND_URL || 'http://localhost:4200'}/matching-profile/feedback/${appointmentId}`;
 
   const subject = `Comment s'est passé votre entretien avec ${companyName} ?`;
   const html = `
