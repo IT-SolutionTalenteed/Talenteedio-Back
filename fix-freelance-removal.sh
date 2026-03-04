@@ -23,6 +23,10 @@ ALTER TABLE cv DROP COLUMN IF EXISTS freelanceId;
 ALTER TABLE user DROP FOREIGN KEY IF EXISTS FK_user_freelance;
 ALTER TABLE user DROP COLUMN IF EXISTS freelanceId;
 
+-- Supprimer les FK et colonnes de favorite (IMPORTANT!)
+ALTER TABLE favorite DROP FOREIGN KEY IF EXISTS FK_1b0b341a7985fd71a25effe0e25;
+ALTER TABLE favorite DROP COLUMN IF EXISTS freelanceId;
+
 -- Supprimer la table junction
 DROP TABLE IF EXISTS freelance_values_value;
 
