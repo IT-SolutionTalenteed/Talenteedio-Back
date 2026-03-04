@@ -24,6 +24,8 @@ echo "🛠️ Building the application..."
 npm run build
 
 echo "🔄 Restarting supervisor"
-sudo /usr/bin/supervisorctl restart all
+sudo /usr/bin/supervisorctl reread
+sudo /usr/bin/supervisorctl update
+sudo /usr/bin/supervisorctl restart tsnode-talenteed-back
 
 echo "Deployment completed successfully. 🎉🎉🎉"
