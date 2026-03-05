@@ -1,31 +1,26 @@
 #!/bin/bash
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"   # charge NVM
 
-nvm use v18.17
+nvm use v18.18
 
-# Start deployment
-echo "🚀 Starting deployment..."
+echo "🚀 Deploying backend..."
 
-echo "🔄 Fetching latest changes from origin..."
+# Récupérer le code
 git fetch origin
-
-echo "🔙 Resetting to origin/main..."
 git reset --hard origin/main
-
-echo "⬇️️ Pulling from origin/main..."
 git pull origin main
 
-echo "📦 Installing npm dependencies..."
+# Installer les dépendances
 npm install
 
-echo "🛠️ Building the application..."
+# Build TypeScript
+echo "🔧 Building TypeScript..."
 npm run build
 
-echo "🔄 Restarting supervisor"
-sudo /usr/bin/supervisorctl reread
-sudo /usr/bin/supervisorctl update
-sudo /usr/bin/supervisorctl restart tsnode-talenteed-back
+# Redémarrer l'API via Supervisor
+echo "🔁 Restarting API..."
+sudo supervisorctl restart talenteed-back
 
-echo "Deployment completed successfully. 🎉🎉🎉"
+echo "✅ Backend deployed successfully!"
