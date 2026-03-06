@@ -1,46 +1,81 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .header {
-            text-align: center;
-            padding: 20px 0;
-            border-bottom: 2px solid #007bff;
-        }
-        .content {
-            padding: 30px 0;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px 0;
-            border-top: 1px solid #ddd;
-            font-size: 12px;
-            color: #666;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Talenteed</h1>
-    </div>
-    
-    <div class="content">
-        {{{message}}}
-    </div>
-    
-    <div class="footer">
-        <p>© 2026 Talenteed. Tous droits réservés.</p>
-        <p>Vous recevez cet email car vous êtes inscrit sur notre plateforme.</p>
-    </div>
-</body>
-</html>
+<!-- Newsletter Header -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 30px 0;">
+    <tr>
+        <td style="text-align: center;">
+            <h1 style="color: #050822; font-size: 24px; margin: 0 0 8px 0; font-weight: 700;">{{title}}</h1>
+            {{#if subtitle}}
+            <p style="color: #6c757d; font-size: 14px; margin: 0; font-weight: 500;">{{subtitle}}</p>
+            {{/if}}
+        </td>
+    </tr>
+</table>
+
+<!-- Featured Image -->
+{{#if featuredImage}}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 30px 0;">
+    <tr>
+        <td style="border: 1px solid #e9ecef; overflow: hidden;">
+            <img src="{{featuredImage}}" alt="{{title}}" style="width: 100%; height: auto; display: block;" />
+        </td>
+    </tr>
+</table>
+{{/if}}
+
+<!-- Content -->
+<div style="font-size: 15px; color: #495057; line-height: 1.7; margin: 0 0 30px 0;">
+    {{{message}}}
+</div>
+
+<!-- Call to Action -->
+{{#if ctaUrl}}
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 30px auto;">
+    <tr>
+        <td style="background-color: #192bc2; border-radius: 4px; text-align: center;">
+            <a href="{{ctaUrl}}" target="_blank" style="background-color: #192bc2; border: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 600; line-height: 1.5; text-align: center; text-decoration: none; display: inline-block; border-radius: 4px; padding: 14px 35px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+                {{ctaText}}
+            </a>
+        </td>
+    </tr>
+</table>
+{{/if}}
+
+<!-- Divider -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 40px 0 30px 0;">
+    <tr>
+        <td style="border-top: 1px solid #dee2e6;"></td>
+    </tr>
+</table>
+
+<!-- Social Media -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 25px 0;">
+    <tr>
+        <td style="text-align: center; padding: 25px 20px; background-color: #f8f9fa; border: 1px solid #e9ecef;">
+            <p style="color: #6c757d; font-size: 13px; margin: 0 0 15px 0; font-weight: 500;">Suivez-nous sur les réseaux sociaux</p>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                <tr>
+                    <td style="padding: 0 12px;">
+                        <a href="https://www.linkedin.com/company/talenteed" style="color: #192bc2; text-decoration: none; font-size: 13px; font-weight: 600;">LinkedIn</a>
+                    </td>
+                    <td style="padding: 0 12px; color: #dee2e6;">|</td>
+                    <td style="padding: 0 12px;">
+                        <a href="https://talenteed.io/blog" style="color: #192bc2; text-decoration: none; font-size: 13px; font-weight: 600;">Blog</a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Unsubscribe -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0 0 0;">
+    <tr>
+        <td style="text-align: center;">
+            <p style="color: #adb5bd; font-size: 12px; margin: 0; line-height: 1.5;">
+                Vous recevez cet email car vous êtes inscrit à notre newsletter.<br>
+                {{#if unsubscribeUrl}}
+                <a href="{{unsubscribeUrl}}" style="color: #6c757d; text-decoration: underline;">Se désabonner</a>
+                {{/if}}
+            </p>
+        </td>
+    </tr>
+</table>

@@ -1,0 +1,11 @@
+<!-- Tableau de détails réutilisable -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    {{#if title}}
+    <tr>
+        <td colspan="2" style="padding-bottom: 15px; border-bottom: 2px solid #e5e7eb;">
+            <h3 style="color: #050822; font-size: 18px; margin: 0; font-weight: 600;">{{title}}</h3>
+        </td>
+    </tr>
+    {{/if}}
+    {{{rows}}}
+</table>

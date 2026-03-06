@@ -1,0 +1,15 @@
+<!-- Boîte d'information réutilisable -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 20px 0;">
+    <tr>
+        <td style="background-color: {{bgColor}}; padding: 20px; border-radius: 8px; border-left: 4px solid {{borderColor}};">
+            {{#if title}}
+            <h3 style="color: {{titleColor}}; font-size: 18px; margin: 0 0 10px 0; font-weight: 600;">
+                {{#if icon}}{{icon}} {{/if}}{{title}}
+            </h3>
+            {{/if}}
+            <p style="color: {{textColor}}; margin: 0; font-size: 15px; line-height: 1.6;">
+                {{{content}}}
+            </p>
+        </td>
+    </tr>
+</table>

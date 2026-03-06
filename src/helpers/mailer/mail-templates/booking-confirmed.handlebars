@@ -1,69 +1,130 @@
-<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-  <div style="background: linear-gradient(135deg, #4a90e2 0%, #357abd 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
-    <h1 style="color: white; margin: 0; font-size: 28px;">Réservation Confirmée ✓</h1>
-  </div>
-  
-  <div style="background-color: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px;">
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      Bonjour <strong>{{clientName}}</strong>,
-    </p>
-    
-    <p style="font-size: 16px; color: #333; margin-bottom: 20px;">
-      Excellente nouvelle ! Votre réservation pour le service <strong>{{serviceName}}</strong> a été confirmée par le consultant.
-    </p>
-    
-    <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4a90e2;">
-      <h2 style="color: #2c3e50; font-size: 20px; margin-top: 0;">Détails de votre réservation</h2>
-      
-      <table style="width: 100%; border-collapse: collapse;">
-        <tr>
-          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Date :</td>
-          <td style="padding: 10px 0; color: #2c3e50;">{{date}}</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Heure :</td>
-          <td style="padding: 10px 0; color: #2c3e50;">{{time}} ({{timezone}})</td>
-        </tr>
-        <tr>
-          <td style="padding: 10px 0; color: #5a6c7d; font-weight: 600;">Montant payé :</td>
-          <td style="padding: 10px 0; color: #5cb85c; font-weight: bold;">{{amount}}€</td>
-        </tr>
-      </table>
-    </div>
+<!-- Greeting -->
+<p style="font-size: 15px; color: #050822; margin: 0 0 8px 0; font-weight: 600;">
+  Bonjour {{name}},
+</p>
 
+<p style="font-size: 15px; color: #495057; margin: 0 0 30px 0; line-height: 1.6;">
+  Nous avons le plaisir de vous confirmer votre réservation pour le service <strong style="color: #050822;">{{serviceName}}</strong>.
+</p>
+
+<!-- Status Badge -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 30px 0;">
+    <tr>
+        <td style="text-align: center; padding: 20px; background-color: #d1f4e0; border-left: 4px solid #28a745;">
+            <p style="margin: 0; color: #155724; font-size: 14px; font-weight: 600;">
+                ✓ RÉSERVATION CONFIRMÉE
+            </p>
+        </td>
+    </tr>
+</table>
+
+<!-- Session Details -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f8f9fa; padding: 0; margin: 0 0 25px 0; border: 1px solid #e9ecef;">
+    <tr>
+        <td style="padding: 25px 30px; border-bottom: 1px solid #e9ecef;">
+            <h2 style="color: #050822; font-size: 16px; margin: 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                Détails de votre session
+            </h2>
+        </td>
+    </tr>
+    <tr>
+        <td style="padding: 0;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr style="border-bottom: 1px solid #e9ecef;">
+                    <td style="padding: 18px 30px; color: #6c757d; font-size: 14px; font-weight: 500; width: 35%;">Consultant</td>
+                    <td style="padding: 18px 30px; color: #212529; font-size: 14px; font-weight: 500;">{{consultant}}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e9ecef;">
+                    <td style="padding: 18px 30px; color: #6c757d; font-size: 14px; font-weight: 500;">Date</td>
+                    <td style="padding: 18px 30px; color: #212529; font-size: 14px; font-weight: 500;">{{date}}</td>
+                </tr>
+                <tr style="border-bottom: 1px solid #e9ecef;">
+                    <td style="padding: 18px 30px; color: #6c757d; font-size: 14px; font-weight: 500;">Horaire</td>
+                    <td style="padding: 18px 30px; color: #212529; font-size: 14px; font-weight: 500;">{{time}}</td>
+                </tr>
+            </table>
+        </td>
+    </tr>
     {{#if meetingLink}}
-    <div style="background-color: #d4edda; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
-      <h3 style="color: #155724; font-size: 18px; margin-top: 0;">🔗 Lien de votre session</h3>
-      <p style="color: #155724; margin-bottom: 15px;">
-        Cliquez sur le bouton ci-dessous pour rejoindre votre session le jour J :
-      </p>
-      <a href="{{meetingLink}}" style="display: inline-block; background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-        Rejoindre la session
-      </a>
-      <p style="color: #5a6c7d; font-size: 12px; margin-top: 15px; word-break: break-all;">
-        Ou copiez ce lien : {{meetingLink}}
-      </p>
-    </div>
+    <tr>
+        <td style="padding: 25px 30px; background-color: #ffffff; text-align: center;">
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 0 auto;">
+                <tr>
+                    <td style="background-color: #192bc2; border-radius: 4px;">
+                        <a href="{{meetingLink}}" target="_blank" style="background-color: #192bc2; border: none; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; font-weight: 600; line-height: 1.5; text-align: center; text-decoration: none; display: inline-block; border-radius: 4px; padding: 14px 35px; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+                            REJOINDRE LA SESSION
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
     {{/if}}
+</table>
 
-    {{#if consultantMessage}}
-    <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-      <h3 style="color: #856404; font-size: 16px; margin-top: 0;">Message du consultant</h3>
-      <p style="color: #856404;">{{consultantMessage}}</p>
-    </div>
-    {{/if}}
-    
-    <p style="font-size: 14px; color: #5a6c7d; margin-top: 30px;">
-      Si vous avez des questions, n'hésitez pas à nous contacter.
-    </p>
-    
-    <p style="font-size: 14px; color: #5a6c7d;">
-      Cordialement,<br>
-      <strong>L'équipe Talenteed</strong>
-    </p>
-  </div>
-  
-  <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-    <p>© {{year}} Talenteed. Tous droits réservés.</p>
-  </div>
-</div>
+<!-- Preparation Tips -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 0 0 25px 0;">
+    <tr>
+        <td style="padding: 0 0 15px 0;">
+            <h3 style="color: #050822; font-size: 15px; margin: 0; font-weight: 600;">
+                Conseils pour votre session
+            </h3>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                    <td style="padding: 10px 0; vertical-align: top; width: 30px;">
+                        <span style="color: #192bc2; font-size: 16px;">•</span>
+                    </td>
+                    <td style="padding: 10px 0 10px 10px; color: #495057; font-size: 14px; line-height: 1.5;">
+                        Testez votre connexion internet et votre caméra
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; vertical-align: top;">
+                        <span style="color: #192bc2; font-size: 16px;">•</span>
+                    </td>
+                    <td style="padding: 10px 0 10px 10px; color: #495057; font-size: 14px; line-height: 1.5;">
+                        Préparez vos questions à l'avance
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; vertical-align: top;">
+                        <span style="color: #192bc2; font-size: 16px;">•</span>
+                    </td>
+                    <td style="padding: 10px 0 10px 10px; color: #495057; font-size: 14px; line-height: 1.5;">
+                        Trouvez un endroit calme pour la session
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding: 10px 0; vertical-align: top;">
+                        <span style="color: #192bc2; font-size: 16px;">•</span>
+                    </td>
+                    <td style="padding: 10px 0 10px 10px; color: #495057; font-size: 14px; line-height: 1.5;">
+                        Connectez-vous 5 minutes avant l'heure prévue
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+
+<!-- Divider -->
+<table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="margin: 30px 0;">
+    <tr>
+        <td style="border-top: 1px solid #dee2e6;"></td>
+    </tr>
+</table>
+
+<!-- Support Message -->
+<p style="font-size: 13px; color: #6c757d; margin: 0 0 5px 0; line-height: 1.5;">
+  Si vous avez des questions ou besoin d'aide, n'hésitez pas à nous contacter.
+</p>
+
+<!-- Signature -->
+<p style="font-size: 14px; color: #495057; margin: 0; line-height: 1.5;">
+  À très bientôt,<br>
+  <strong style="color: #050822;">L'équipe Talenteed</strong>
+</p>
