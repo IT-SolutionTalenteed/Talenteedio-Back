@@ -111,7 +111,9 @@
         "build/**/*",
         "dist/**/*",
         "*.ts",
-        "*.js"
+        "*.js",
+        "src/fix-image-urls.ts",
+        "src/graphql/resources/user/matching.resolver.ts"
     ],
     "include": ["src/**/*"]
 }

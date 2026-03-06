@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateBlockedTimeSlotsTable1734087574000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -44,15 +44,20 @@ export class CreateBlockedTimeSlotsTable1734087574000 implements MigrationInterf
     // Index unique pour éviter les doublons
     await queryRunner.createIndex(
       'blocked_time_slots',
-      new Index('IDX_blocked_time_slots_consultant_date_time', ['consultant_id', 'date', 'time'], {
-        unique: true,
+      new TableIndex({
+        name: 'IDX_blocked_time_slots_consultant_date_time',
+        columnNames: ['consultant_id', 'date', 'time'],
+        isUnique: true,
       }),
     );
 
     // Index pour optimiser les requêtes par consultant et date
     await queryRunner.createIndex(
       'blocked_time_slots',
-      new Index('IDX_blocked_time_slots_consultant_date', ['consultant_id', 'date']),
+      new TableIndex({
+        name: 'IDX_blocked_time_slots_consultant_date',
+        columnNames: ['consultant_id', 'date'],
+      }),
     );
   }
 
