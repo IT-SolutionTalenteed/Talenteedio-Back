@@ -45,3 +45,4 @@ This will start development server
 ```
 
 This will start produxtion server
+rebuild admin again
