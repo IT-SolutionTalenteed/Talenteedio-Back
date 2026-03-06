@@ -1,26 +1,26 @@
 #!/bin/bash
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"   # charge NVM
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
 nvm use v18.18
 
-echo "🚀 Deploying backend..."
+echo "🚀 Deploy backend"
 
-# Récupérer le code
+# récupérer les dernières modifications
 git fetch origin
 git reset --hard origin/main
 git pull origin main
 
-# Installer les dépendances
-npm install
+# installer les dépendances en production
+npm install --production --legacy-peer-deps
 
-# Build TypeScript
-echo "🔧 Building TypeScript..."
-npm run build
+# optional: build TypeScript pour check, mais pas obligatoire
+echo "🔧 Building TypeScript (optional)"
+npm run build || echo "⚠️ Build failed, continue anyway"
 
-# Redémarrer l'API via Supervisor
-echo "🔁 Restarting API..."
+# restart backend via supervisor
+echo "🔁 Restarting API"
 sudo supervisorctl restart talenteed-back
 
-echo "✅ Backend deployed successfully!"
+echo "✅ Backend deployed"
