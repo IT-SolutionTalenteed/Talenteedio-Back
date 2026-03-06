@@ -1,31 +1,35 @@
 #!/bin/bash
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-nvm use v18.17
+# Force Node v20 (required for pdf-parse and pdfjs-dist)
+nvm use v20 || nvm install v20
 
-# Start deployment
-echo "🚀 Starting deployment..."
+echo "🚀 Deploy backend"
+echo "📌 Node version: $(node -v)"
+echo "📌 NPM version: $(npm -v)"
 
-echo "🔄 Fetching latest changes from origin..."
+# récupérer les dernières modifications
 git fetch origin
-
-echo "🔙 Resetting to origin/main..."
 git reset --hard origin/main
-
-echo "⬇️️ Pulling from origin/main..."
 git pull origin main
 
-echo "📦 Installing npm dependencies..."
-npm install
+# installer TOUTES les dépendances (y compris devDependencies pour le build)
+echo "📦 Installing dependencies..."
+npm install --legacy-peer-deps
 
-echo "🛠️ Building the application..."
-npm run build
+# Build TypeScript (OBLIGATOIRE pour copier les fichiers .graphql et .handlebars)
+echo "🔧 Building TypeScript..."
+if ! npm run build; then
+    echo "❌ Build failed! Deployment aborted."
+    exit 1
+fi
 
-echo "🔄 Restarting supervisor"
-sudo /usr/bin/supervisorctl reread
-sudo /usr/bin/supervisorctl update
-sudo /usr/bin/supervisorctl restart tsnode-talenteed-back
+echo "✅ Build successful"
 
-echo "Deployment completed successfully. 🎉🎉🎉"
+# restart backend via supervisor
+echo "🔁 Restarting API"
+sudo supervisorctl restart talenteed-back
+
+echo "✅ Backend deployed"

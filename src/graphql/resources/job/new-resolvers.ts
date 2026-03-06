@@ -40,17 +40,16 @@ export const newMutations = {
     submitApplicationFeedback: async (_: any, args: { input: { applicationId: string; matchScoreAccuracy?: number; comments?: string; criteriaFeedback?: string; wasHired: boolean } }, context: any): Promise<Payload> => {
         try {
             const user = context.req.session.user as User;
-            const { ApplicationFeedback } = await import('../../../database/entities');
+            const { ApplicationFeedback, REVIEWER_TYPE } = await import('../../../database/entities');
 
-            const feedback = ApplicationFeedback.create({
-                application: { id: args.input.applicationId } as Application,
-                reviewedBy: user.id,
-                reviewerType: user.admin ? 'ADMIN' : 'CLIENT',
-                matchScoreAccuracy: args.input.matchScoreAccuracy,
-                comments: args.input.comments,
-                criteriaFeedback: args.input.criteriaFeedback ? JSON.parse(args.input.criteriaFeedback) : null,
-                wasHired: args.input.wasHired,
-            });
+            const feedback = new ApplicationFeedback();
+            feedback.application = { id: args.input.applicationId } as Application;
+            feedback.reviewedBy = user.id;
+            feedback.reviewerType = user.admin ? REVIEWER_TYPE.ADMIN : REVIEWER_TYPE.CLIENT;
+            feedback.matchScoreAccuracy = args.input.matchScoreAccuracy;
+            feedback.comments = args.input.comments;
+            feedback.criteriaFeedback = args.input.criteriaFeedback ? JSON.parse(args.input.criteriaFeedback) : null;
+            feedback.wasHired = args.input.wasHired;
 
             await feedback.save();
             return { success: true };

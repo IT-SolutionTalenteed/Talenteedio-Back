@@ -69,7 +69,8 @@ export const seedCompanyPlans = async () => {
     ];
 
     for (const planData of plans) {
-        const plan = CompanyPlan.create(planData);
+        const plan = new CompanyPlan();
+        Object.assign(plan, planData);
         await plan.save();
         console.log(`Created plan: ${plan.title}`);
     }

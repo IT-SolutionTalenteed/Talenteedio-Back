@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, Index } from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
 export class CreateBlockedDatesTable1734087573000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
@@ -57,7 +57,10 @@ export class CreateBlockedDatesTable1734087573000 implements MigrationInterface 
     // Index pour optimiser les requêtes
     await queryRunner.createIndex(
       'blocked_dates',
-      new Index('IDX_blocked_dates_consultant_date', ['consultant_id', 'date']),
+      new TableIndex({
+        name: 'IDX_blocked_dates_consultant_date',
+        columnNames: ['consultant_id', 'date'],
+      }),
     );
   }
 
