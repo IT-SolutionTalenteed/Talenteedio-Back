@@ -1,6 +1,6 @@
 import { createGraphQLError } from 'graphql-yoga';
 import { composeResolvers } from '@graphql-tools/resolvers-composition';
-import { In, Like } from 'typeorm';
+import { In, Like, Not } from 'typeorm';
 
 import { Event, Category, User, Company, EventParticipationRequest, EventUserReservation, PARTICIPATION_REQUEST_STATUS, RESERVATION_STATUS } from '../../../database/entities';
 import { PaginationInput, Resource, CreateEventInput, UpdateEventInput, DeleteEventInput, ChangeEventStatusInput } from '../../../type';
@@ -251,8 +251,13 @@ const resolver = {
                     newEvent.company = user.company;
                 }
 
+                // Si featured est true, mettre tous les autres événements à false
+                if (args.input.featured === true) {
+                    await queryRunner.manager.update(Event, {}, { featured: false });
+                }
+
                 // Handle category
-                if (args.input.category) {
+                if (args.input.category && args.input.category.id && args.input.category.id !== '') {
                     const category = await Category.findOne({ where: { id: args.input.category.id } });
                     if (category) {
                         newEvent.category = category;
@@ -308,13 +313,18 @@ const resolver = {
                         });
                     }
 
+                    // Si featured est true, mettre tous les autres événements à false
+                    if (args.input.featured === true) {
+                        await queryRunner.manager.update(Event, { id: Not(event.id) }, { featured: false });
+                    }
+
                     // Handle category update
-                    if (args.input.category) {
+                    if (args.input.category && args.input.category.id && args.input.category.id !== '') {
                         const category = await Category.findOne({ where: { id: args.input.category.id } });
                         if (category) {
                             event.category = category;
                         }
-                    } else if (args.input.category === null) {
+                    } else if (args.input.category === null || (args.input.category && (!args.input.category.id || args.input.category.id === ''))) {
                         event.category = null as any;
                     }
 
@@ -330,12 +340,9 @@ const resolver = {
                         }
                     }
 
-                    // Update other fields
-                    Object.assign(event, { 
-                        ...args.input, 
-                        category: undefined, 
-                        companies: undefined 
-                    });
+                    // Update other fields (exclude category and companies as they're handled separately)
+                    const { category: _, companies: __, ...otherFields } = args.input;
+                    Object.assign(event, otherFields);
 
                     // Save the event with the updated companies relation
                     await queryRunner.manager.save(Event, event);

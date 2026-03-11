@@ -51,6 +51,9 @@ export class Event extends BaseEntity {
     @Column({ nullable: true })
     image: string; // URL de l'image de l'événement
 
+    @Column({ type: 'boolean', default: false })
+    featured: boolean; // Événement mis en avant
+
     @ManyToOne(() => Admin, (admin) => admin.events)
     admin: Admin;
 

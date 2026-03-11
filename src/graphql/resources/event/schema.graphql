@@ -61,6 +61,7 @@ input CreateEventInput {
     location: String
     maxParticipants: Int
     image: String
+    featured: Boolean
     category: UpdateCategoryInput
     companies: [UpdateCompanyInput]
 }
@@ -78,6 +79,7 @@ input UpdateEventInput {
     location: String
     maxParticipants: Int
     image: String
+    featured: Boolean
     category: UpdateCategoryInput
     companies: [UpdateCompanyInput]
 }
@@ -102,6 +104,7 @@ type Event {
     location: String
     maxParticipants: Int
     image: String
+    featured: Boolean
     admin: Admin
     company: Company
     category: Category
