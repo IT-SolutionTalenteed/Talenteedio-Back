@@ -313,9 +313,13 @@ const resolver = {
                         });
                     }
 
-                    // Si featured est true, mettre tous les autres événements à false
-                    if (args.input.featured === true) {
-                        await queryRunner.manager.update(Event, { id: Not(event.id) }, { featured: false });
+                    // Handle featured update
+                    if (args.input.featured !== undefined) {
+                        event.featured = args.input.featured;
+                        // Si featured est true, mettre tous les autres événements à false
+                        if (args.input.featured === true) {
+                            await queryRunner.manager.update(Event, { id: Not(event.id) }, { featured: false });
+                        }
                     }
 
                     // Handle category update
@@ -340,12 +344,12 @@ const resolver = {
                         }
                     }
 
-                    // Update other fields (exclude category and companies as they're handled separately)
-                    const { category: _, companies: __, ...otherFields } = args.input;
+                    // Update other fields (exclude featured, category and companies as they're handled separately)
+                    const { featured: ___, category: _, companies: __, ...otherFields } = args.input;
                     Object.assign(event, otherFields);
 
                     // Save the event with the updated companies relation
-                    await queryRunner.manager.save(Event, event);
+                    const savedEvent = await queryRunner.manager.save(Event, event);
 
                     await queryRunner.commitTransaction();
 
