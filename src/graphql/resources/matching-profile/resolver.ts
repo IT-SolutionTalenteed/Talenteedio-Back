@@ -370,7 +370,7 @@ export default {
         },
 
         // Lancer le matching avec les entreprises (Étape 2)
-        matchProfileWithCompanies: async (_: any, args: { matchingProfileId: string }, context: any): Promise<any> => {
+        matchProfileWithCompanies: async (_: any, args: { matchingProfileId: string; eventId?: string }, context: any): Promise<any> => {
             const user = context.req?.session?.user as User;
             if (!user) {
                 throw createGraphQLError('Unauthorized', { extensions: { statusCode: 401 } });
@@ -403,45 +403,68 @@ export default {
                 });
             }
 
-            // Récupérer TOUTES les entreprises publiques avec leurs jobs
+            // Récupérer les entreprises à matcher
             let companies: Company[] = [];
             
-            if (profile.targetSectorIds && profile.targetSectorIds.length > 0) {
-                // Rechercher les catégories qui correspondent aux secteurs ciblés (recherche par nom)
-                const categories = await Category.find();
-                const matchingCategoryIds = categories
-                    .filter(cat => profile.targetSectorIds.some(sector => 
-                        cat.name.toLowerCase().includes(sector.toLowerCase()) || 
-                        sector.toLowerCase().includes(cat.name.toLowerCase())
-                    ))
-                    .map(cat => cat.id);
+            // Si un eventId est fourni, ne matcher qu'avec les entreprises de l'événement
+            if (args.eventId) {
+                const { Event } = await import('../../../database/entities/Event');
+                const event = await Event.findOne({
+                    where: { id: args.eventId },
+                    relations: ['companies', 'companies.category', 'companies.logo', 'companies.contact', 'companies.contact.address', 'companies.jobs'],
+                });
 
-                if (matchingCategoryIds.length > 0) {
-                    companies = await Company.find({
-                        where: {
-                            category: {
-                                id: In(matchingCategoryIds),
-                            },
-                            status: 'public' as any,
-                        },
-                        relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
+                if (!event) {
+                    throw createGraphQLError('Event not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
+                }
+
+                if (!event.companies || event.companies.length === 0) {
+                    throw createGraphQLError('Aucune entreprise ne participe à cet événement.', { 
+                        extensions: { statusCode: 404, statusText: NOT_FOUND } 
                     });
                 }
-                
-                // Si aucune entreprise trouvée avec les secteurs spécifiques, prendre toutes les entreprises
-                if (companies.length === 0) {
-                    console.log('No companies found for specified sectors, fetching all public companies');
+
+                companies = event.companies.filter(c => c.status === 'public' as any);
+                console.log(`Matching with ${companies.length} companies from event ${event.title}`);
+            } else {
+                // Sinon, récupérer TOUTES les entreprises publiques (comportement par défaut)
+                if (profile.targetSectorIds && profile.targetSectorIds.length > 0) {
+                    // Rechercher les catégories qui correspondent aux secteurs ciblés (recherche par nom)
+                    const categories = await Category.find();
+                    const matchingCategoryIds = categories
+                        .filter(cat => profile.targetSectorIds.some(sector => 
+                            cat.name.toLowerCase().includes(sector.toLowerCase()) || 
+                            sector.toLowerCase().includes(cat.name.toLowerCase())
+                        ))
+                        .map(cat => cat.id);
+
+                    if (matchingCategoryIds.length > 0) {
+                        companies = await Company.find({
+                            where: {
+                                category: {
+                                    id: In(matchingCategoryIds),
+                                },
+                                status: 'public' as any,
+                            },
+                            relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
+                        });
+                    }
+                    
+                    // Si aucune entreprise trouvée avec les secteurs spécifiques, prendre toutes les entreprises
+                    if (companies.length === 0) {
+                        console.log('No companies found for specified sectors, fetching all public companies');
+                        companies = await Company.find({
+                            where: { status: 'public' as any },
+                            relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
+                        });
+                    }
+                } else {
+                    // Si pas de secteur spécifié, prendre TOUTES les entreprises publiques
                     companies = await Company.find({
                         where: { status: 'public' as any },
                         relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
                     });
                 }
-            } else {
-                // Si pas de secteur spécifié, prendre TOUTES les entreprises publiques
-                companies = await Company.find({
-                    where: { status: 'public' as any },
-                    relations: ['category', 'logo', 'contact', 'contact.address', 'jobs'],
-                });
             }
 
             if (companies.length === 0) {
@@ -454,8 +477,10 @@ export default {
 
             const companyMatches: CompanyMatch[] = [];
             const jobMatches: JobMatch[] = [];
+            const unmatchedCompanies: Company[] = []; // Entreprises qui n'ont pas matché directement
 
-            // Matcher avec chaque entreprise
+            // ÉTAPE 1: Matcher directement avec toutes les entreprises
+            console.log('=== ÉTAPE 1: Matching direct avec les entreprises ===');
             for (const company of companies) {
                 try {
                     // Vérifier si un match existe déjà
@@ -466,7 +491,7 @@ export default {
                         },
                     });
 
-                    // Construire une description complète de l'entreprise avec tous les jobs
+                    // Construire une description complète de l'entreprise
                     let companyDescription = company.company_name;
                     
                     if (company.contact?.address?.city) {
@@ -479,22 +504,14 @@ export default {
 
                     const companySector = company.category?.name || 'Non spécifié';
                     
-                    // Récupérer TOUS les jobs publics de l'entreprise avec leurs détails
-                    const companyJobs = company.jobs
+                    // Récupérer les titres des jobs pour le contexte (sans le contenu détaillé)
+                    const companyJobTitles = company.jobs
                         ?.filter((j: Job) => j.status === 'public')
-                        .map((j: Job) => {
-                            let jobInfo = j.title;
-                            if (j.content) {
-                                // Limiter le contenu à 200 caractères pour ne pas surcharger
-                                const shortContent = j.content.substring(0, 200);
-                                jobInfo += ` - ${shortContent}${j.content.length > 200 ? '...' : ''}`;
-                            }
-                            return jobInfo;
-                        }) || [];
+                        .map((j: Job) => j.title) || [];
 
-                    console.log(`Matching with company: ${company.company_name} (${companyJobs.length} jobs)`);
+                    console.log(`Matching with company: ${company.company_name} (${companyJobTitles.length} jobs)`);
 
-                    // Appeler le service de matching avec toutes les informations
+                    // Appeler le service de matching avec les informations de base
                     const matchResult = await matchProfileWithCompany({
                         profileText,
                         profileTitle: profile.title,
@@ -504,10 +521,10 @@ export default {
                         companyName: company.company_name,
                         companyDescription,
                         companySector,
-                        companyJobs,
+                        companyJobs: companyJobTitles, // Juste les titres pour le contexte
                     });
 
-                    // Ne sauvegarder que les matchs avec un score >= 30%
+                    // Si le match est >= 30%, valider l'entreprise immédiatement
                     if (matchResult.overall_match_percentage >= 30) {
                         if (!match) {
                             match = new CompanyMatch();
@@ -521,18 +538,44 @@ export default {
                         await match.save();
                         companyMatches.push(match);
                         
-                        console.log(`✓ Company match saved: ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                        console.log(`✓ Company match saved (direct): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
                     } else {
                         console.log(`✗ Company match rejected (score < 30%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                        
+                        // Ajouter aux entreprises non matchées pour vérifier leurs jobs
+                        unmatchedCompanies.push(company);
                         
                         // Supprimer le match existant s'il est en dessous de 30%
                         if (match && match.id) {
                             await CompanyMatch.delete(match.id);
                         }
                     }
+                } catch (error) {
+                    console.error(`Error matching with company ${company.id}:`, error);
+                    // En cas d'erreur, ajouter aux non matchées pour essayer via les jobs
+                    unmatchedCompanies.push(company);
+                }
+            }
 
-                    // Matcher avec chaque job de l'entreprise individuellement
+            // ÉTAPE 2: Pour les entreprises non matchées, vérifier leurs jobs
+            console.log(`\n=== ÉTAPE 2: Matching via jobs pour ${unmatchedCompanies.length} entreprises non matchées ===`);
+            for (const company of unmatchedCompanies) {
+                try {
                     const publicJobs = company.jobs?.filter((j: Job) => j.status === 'public') || [];
+                    
+                    if (publicJobs.length === 0) {
+                        console.log(`  Skipping ${company.company_name} - no public jobs`);
+                        continue;
+                    }
+
+                    console.log(`  Checking jobs for: ${company.company_name} (${publicJobs.length} jobs)`);
+                    
+                    let companyValidatedViaJob = false;
+                    let bestJobMatchScore = 0;
+                    let bestJobMatchDetails: any = null;
+                    let bestJobTitle = '';
+
+                    // Parcourir les jobs jusqu'à trouver un match >= 30%
                     for (const job of publicJobs) {
                         try {
                             // Vérifier si un match existe déjà
@@ -553,7 +596,7 @@ export default {
                             // Récupérer les compétences requises
                             const jobSkills = job.skills?.map(s => s.name) || [];
 
-                            console.log(`  Matching with job: ${job.title}`);
+                            console.log(`    Matching with job: ${job.title}`);
 
                             // Appeler le service de matching pour le job
                             const jobMatchResult = await matchCVWithJob({
@@ -563,7 +606,7 @@ export default {
                                 jobSkills: jobSkills,
                             });
 
-                            // Ne sauvegarder que les matchs avec un score >= 30%
+                            // Si le job matche >= 30%, sauvegarder et valider l'entreprise immédiatement
                             if (jobMatchResult.overall_match_percentage >= 30) {
                                 if (!jobMatch) {
                                     jobMatch = new JobMatch();
@@ -577,51 +620,21 @@ export default {
                                 await jobMatch.save();
                                 jobMatches.push(jobMatch);
                                 
-                                console.log(`  ✓ Job match saved: ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
+                                console.log(`    ✓ Job match saved: ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
 
-                                // Si un job matche, créer aussi un CompanyMatch pour l'entreprise (si pas déjà existant avec un bon score)
-                                let companyMatch = await CompanyMatch.findOne({
-                                    where: {
-                                        matchingProfileId: profile.id,
-                                        companyId: company.id,
-                                    },
-                                });
-
-                                // Si pas de CompanyMatch ou si le score est inférieur au score du job, créer/mettre à jour
-                                if (!companyMatch || companyMatch.matchScore < jobMatchResult.overall_match_percentage) {
-                                    if (!companyMatch) {
-                                        companyMatch = new CompanyMatch();
-                                        companyMatch.matchingProfileId = profile.id;
-                                        companyMatch.companyId = company.id;
-                                    }
-
-                                    // Utiliser le meilleur score entre le job et le match entreprise existant
-                                    companyMatch.matchScore = Math.max(
-                                        jobMatchResult.overall_match_percentage,
-                                        companyMatch.matchScore || 0
-                                    );
-                                    
-                                    companyMatch.matchDetails = {
-                                        overall_match_percentage: companyMatch.matchScore,
-                                        criteria_scores: jobMatchResult.criteria_scores || [],
-                                        strengths: [
-                                            ...(jobMatchResult.strengths || []),
-                                            `Offre d'emploi correspondante: ${job.title}`
-                                        ],
-                                        gaps: jobMatchResult.gaps || [],
-                                        recommendation: `Cette entreprise a publié une offre (${job.title}) qui correspond à votre profil à ${jobMatchResult.overall_match_percentage}%`
-                                    };
-
-                                    await companyMatch.save();
-                                    
-                                    // Ajouter à la liste si pas déjà présent
-                                    if (!companyMatches.find(cm => cm.companyId === company.id)) {
-                                        companyMatches.push(companyMatch);
-                                        console.log(`  ✓ Company match created/updated from job: ${company.company_name} - ${companyMatch.matchScore}%`);
-                                    }
+                                // Garder le meilleur score pour l'entreprise
+                                if (jobMatchResult.overall_match_percentage > bestJobMatchScore) {
+                                    bestJobMatchScore = jobMatchResult.overall_match_percentage;
+                                    bestJobMatchDetails = jobMatchResult;
+                                    bestJobTitle = job.title;
                                 }
+
+                                companyValidatedViaJob = true;
+                                
+                                // OPTIMISATION: Dès qu'un job matche, on valide l'entreprise et on arrête
+                                break;
                             } else {
-                                console.log(`  ✗ Job match rejected (score < 30%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
+                                console.log(`    ✗ Job match rejected (score < 30%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
                                 
                                 // Supprimer le match existant s'il est en dessous de 30%
                                 if (jobMatch && jobMatch.id) {
@@ -629,13 +642,45 @@ export default {
                                 }
                             }
                         } catch (error) {
-                            console.error(`  Error matching with job ${job.id}:`, error);
+                            console.error(`    Error matching with job ${job.id}:`, error);
                             // Continuer avec les autres jobs
                         }
                     }
+
+                    // Si au moins un job a matché, créer le CompanyMatch
+                    if (companyValidatedViaJob) {
+                        let companyMatch = await CompanyMatch.findOne({
+                            where: {
+                                matchingProfileId: profile.id,
+                                companyId: company.id,
+                            },
+                        });
+
+                        if (!companyMatch) {
+                            companyMatch = new CompanyMatch();
+                            companyMatch.matchingProfileId = profile.id;
+                            companyMatch.companyId = company.id;
+                        }
+
+                        companyMatch.matchScore = bestJobMatchScore;
+                        companyMatch.matchDetails = {
+                            overall_match_percentage: bestJobMatchScore,
+                            criteria_scores: bestJobMatchDetails.criteria_scores || [],
+                            strengths: [
+                                ...(bestJobMatchDetails.strengths || []),
+                                `Offre d'emploi correspondante: ${bestJobTitle}`
+                            ],
+                            gaps: bestJobMatchDetails.gaps || [],
+                            recommendation: `Cette entreprise a publié une offre (${bestJobTitle}) qui correspond à votre profil à ${bestJobMatchScore}%`
+                        };
+
+                        await companyMatch.save();
+                        companyMatches.push(companyMatch);
+                        
+                        console.log(`  ✓ Company validated via job: ${company.company_name} - ${bestJobMatchScore}%`);
+                    }
                 } catch (error) {
-                    console.error(`Error matching with company ${company.id}:`, error);
-                    // Continuer avec les autres entreprises
+                    console.error(`  Error processing jobs for company ${company.id}:`, error);
                 }
             }
 
