@@ -223,7 +223,7 @@ type Skill {
 
 extend type Mutation {
     saveMatchingProfile(input: MatchingProfileInput!): MatchingProfile!
-    matchProfileWithCompanies(matchingProfileId: ID!): MatchingResult!
+    matchProfileWithCompanies(matchingProfileId: ID!, eventId: ID): MatchingResult!
     toggleCompanySelection(matchId: ID!, isSelected: Boolean!): CompanyMatch!
     createCompanyAppointment(input: CompanyAppointmentInput!): CompanyAppointment!
     cancelAppointment(appointmentId: ID!): CompanyAppointment!
