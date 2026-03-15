@@ -253,7 +253,11 @@ const resolver = {
 
                 // Si featured est true, mettre tous les autres événements à false
                 if (args.input.featured === true) {
-                    await queryRunner.manager.update(Event, {}, { featured: false });
+                    await queryRunner.manager
+                        .createQueryBuilder()
+                        .update(Event)
+                        .set({ featured: false })
+                        .execute();
                 }
 
                 // Handle category
