@@ -3,7 +3,7 @@ import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like, Not } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 
-import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category } from '../../../database/entities';
+import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Value, Permission, Category, Job } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
 
 import { getResources, returnError } from '../../../helpers/graphql';
@@ -907,32 +907,56 @@ const resolver = {
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         deleteCompany: async (_: any, args: { input: { id: string } }, context: any): Promise<Payload> => {
+            const queryRunner = AppDataSource.createQueryRunner();
+            await queryRunner.startTransaction();
+
             try {
                 const company = await Company.findOne({
                     where: {
                         id: args.input.id,
                     },
-                    relations: companyRelations,
+                    relations: [...companyRelations, 'jobs'],
                 });
 
-                if (company) {
-                    const user = context.req.session.user as User;
-
-                    if (!user.admin && (!user.company || company?.id !== user.company.id)) {
-                        throw createGraphQLError('Access denied for this company', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
-                    }
-
-                    const result = await Company.delete(args.input.id);
-
-                    if (result.affected === 1) {
-                        return { success: true };
-                    }
+                if (!company) {
+                    throw createGraphQLError('Company not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
                 }
 
-                throw createGraphQLError('Company not found', { extensions: { statusCode: 404, statusText: NOT_FOUND } });
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const user = context.req.session.user as User;
+
+                if (!user.admin && (!user.company || company?.id !== user.company.id)) {
+                    throw createGraphQLError('Access denied for this company', { extensions: { statusCode: 403, statusText: FORBIDDEN } });
+                }
+
+                // Supprimer d'abord tous les jobs associés
+                if (company.jobs && company.jobs.length > 0) {
+                    console.log(`Deleting ${company.jobs.length} jobs for company ${company.company_name}`);
+                    await queryRunner.manager.delete(Job, { company: { id: company.id } });
+                }
+
+                // Supprimer les autres dépendances si nécessaire
+                // CompanyMatch, CompanyAppointment, etc.
+                const { CompanyMatch } = await import('../../../database/entities/CompanyMatch');
+                const { CompanyAppointment } = await import('../../../database/entities/CompanyAppointment');
+                
+                await queryRunner.manager.delete(CompanyMatch, { companyId: company.id });
+                await queryRunner.manager.delete(CompanyAppointment, { company: { id: company.id } });
+
+                // Maintenant supprimer l'entreprise
+                const result = await queryRunner.manager.delete(Company, args.input.id);
+
+                if (result.affected === 1) {
+                    await queryRunner.commitTransaction();
+                    return { success: true };
+                } else {
+                    throw createGraphQLError('Failed to delete company', { extensions: { statusCode: 500 } });
+                }
+
             } catch (error: any) {
+                await queryRunner.rollbackTransaction();
                 throw returnError(error);
+            } finally {
+                await queryRunner.release();
             }
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

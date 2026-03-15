@@ -94,7 +94,7 @@ export class Job extends BaseEntity {
     @ManyToOne(() => Category)
     category: Category;
 
-    @ManyToOne(() => Company, { nullable: false })
+    @ManyToOne(() => Company, { nullable: false, onDelete: 'CASCADE' })
     company!: Company;
 
     @ManyToMany(() => Skill)
