@@ -42,7 +42,7 @@ export class Article extends BaseEntity {
     @ManyToOne(() => Admin, (admin) => admin.articles)
     admin: Admin;
 
-    @ManyToOne(() => Company, (company) => company.articles)
+    @ManyToOne(() => Company, (company) => company.articles, { onDelete: 'CASCADE' })
     company: Company;
 
     @ManyToOne(() => Media, { onDelete: 'CASCADE' })
