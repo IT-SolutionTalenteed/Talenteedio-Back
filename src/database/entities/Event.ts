@@ -36,6 +36,9 @@ export class Event extends BaseEntity {
     @Column({ type: 'date' })
     date: Date;
 
+    @Column({ type: 'date', nullable: true })
+    endDate: Date; // Date de fin de l'événement
+
     @Column({ type: 'time', nullable: true })
     startTime: string; // Heure de début (ex: "14:00")
 
