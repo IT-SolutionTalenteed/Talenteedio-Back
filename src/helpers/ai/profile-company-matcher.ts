@@ -62,6 +62,8 @@ Description: ${input.companyDescription}
             '--cv', input.profileText,
             '--job-title', input.profileTitle,
             '--job-description', virtualJobDescription,
+            '--company-sector', input.companySector,
+            '--profile-sectors', input.targetSectors.join(',')
         ];
         
         // Ajouter les compétences du candidat
@@ -94,17 +96,8 @@ Description: ${input.companyDescription}
             console.log(`[AI Matching] STDERR: ${stderr}`);
             
             if (code !== 0) {
-                console.error(`[AI Matching] Python script error for ${input.companyName}:`, stderr);
-                // Retourner un score par défaut au lieu de rejeter
-                const fallbackResult: CompanyMatchResult = {
-                    overall_match_percentage: 35,
-                    criteria_scores: [],
-                    strengths: ["Évaluation par défaut"],
-                    gaps: ["Erreur dans l'analyse"],
-                    recommendation: "Évaluation manuelle recommandée"
-                };
-                console.log(`[AI Matching] Using fallback result for ${input.companyName}: 35%`);
-                resolve(fallbackResult);
+                console.error(`[AI Matching] Python script failed for ${input.companyName}:`, stderr);
+                reject(new Error(`Python script failed with code ${code}: ${stderr}`));
                 return;
             }
             
@@ -113,33 +106,15 @@ Description: ${input.companyDescription}
                 console.log(`[AI Matching] Success for ${input.companyName}: ${result.overall_match_percentage}%`);
                 resolve(result);
             } catch (error) {
-                console.error(`[AI Matching] Failed to parse output for ${input.companyName}:`, stdout);
+                console.error(`[AI Matching] Failed to parse JSON output for ${input.companyName}:`, stdout);
                 console.error(`[AI Matching] Parse error:`, error);
-                // Retourner un score par défaut au lieu de rejeter
-                const fallbackResult: CompanyMatchResult = {
-                    overall_match_percentage: 35,
-                    criteria_scores: [],
-                    strengths: ["Évaluation par défaut"],
-                    gaps: ["Erreur dans le parsing"],
-                    recommendation: "Évaluation manuelle recommandée"
-                };
-                console.log(`[AI Matching] Using fallback result for ${input.companyName}: 35%`);
-                resolve(fallbackResult);
+                reject(new Error(`Failed to parse AI response: ${error}`));
             }
         });
         
         pythonProcess.on('error', (error) => {
             console.error(`[AI Matching] Failed to start Python process for ${input.companyName}:`, error);
-            // Retourner un score par défaut au lieu de rejeter
-            const fallbackResult: CompanyMatchResult = {
-                overall_match_percentage: 35,
-                criteria_scores: [],
-                strengths: ["Évaluation par défaut"],
-                gaps: ["Erreur de processus"],
-                recommendation: "Évaluation manuelle recommandée"
-            };
-            console.log(`[AI Matching] Using fallback result for ${input.companyName}: 35%`);
-            resolve(fallbackResult);
+            reject(new Error(`Failed to start Python process: ${error.message}`));
         });
     });
 }

@@ -88,12 +88,15 @@ Expérience: ${user.yearsOfExperience || 0} ans
 
             // 5. Matcher avec chaque company
             const companyMatches: CompanyMatchScore[] = [];
+            const failedMatches: string[] = [];
 
             for (const company of companies) {
                 try {
                     // Récupérer les jobs actifs de la company
                     const activeJobs = company.jobs?.filter(job => job.status === 'public') || [];
                     const jobTitles = activeJobs.map(job => job.title);
+
+                    console.log(`\n=== Matching with company: ${company.company_name} (${activeJobs.length} jobs) ===`);
 
                     // Matcher le profil avec la company
                     const companyMatch = await matchProfileWithCompany({
@@ -128,7 +131,8 @@ Expérience: ${user.yearsOfExperience || 0} ans
                                 gaps: jobMatch.gaps
                             });
                         } catch (error) {
-                            console.error(`Error matching job ${job.id}:`, error);
+                            console.error(`❌ Error matching job ${job.title} (${job.id}):`, error.message);
+                            // Ne pas ajouter le job qui a échoué
                         }
                     }
 
@@ -139,6 +143,8 @@ Expérience: ${user.yearsOfExperience || 0} ans
 
                     // Score final = moyenne pondérée (70% company, 30% jobs)
                     const finalScore = companyMatch.overall_match_percentage * 0.7 + avgJobScore * 0.3;
+
+                    console.log(`✅ Company match successful: ${company.company_name} - ${Math.round(finalScore)}%`);
 
                     companyMatches.push({
                         companyId: company.id,
@@ -153,7 +159,9 @@ Expérience: ${user.yearsOfExperience || 0} ans
                         matchingJobs: jobMatches.sort((a, b) => b.matchPercentage - a.matchPercentage)
                     });
                 } catch (error) {
-                    console.error(`Error matching company ${company.id}:`, error);
+                    console.error(`❌ Error matching company ${company.company_name} (${company.id}):`, error.message);
+                    failedMatches.push(`${company.company_name}: ${error.message}`);
+                    // Ne pas ajouter l'entreprise qui a échoué
                 }
             }
 
@@ -162,10 +170,22 @@ Expérience: ${user.yearsOfExperience || 0} ans
                 .sort((a, b) => b.matchPercentage - a.matchPercentage)
                 .slice(0, 10);
 
+            console.log(`\n=== MATCHING SUMMARY ===`);
+            console.log(`✅ Successfully matched: ${companyMatches.length} companies`);
+            console.log(`❌ Failed to match: ${failedMatches.length} companies`);
+            if (failedMatches.length > 0) {
+                console.log(`Failed companies:`, failedMatches);
+            }
+
             return JSON.stringify({
                 matches: sortedMatches,
                 totalCompaniesAnalyzed: companies.length,
-                message: 'Matching completed successfully'
+                successfulMatches: companyMatches.length,
+                failedMatches: failedMatches.length,
+                failedCompanies: failedMatches,
+                message: companyMatches.length > 0 
+                    ? 'Matching completed successfully' 
+                    : 'No companies could be matched - check Python script configuration'
             });
         } catch (error) {
             console.error('Error in matchTalentWithCompanies:', error);

@@ -524,8 +524,8 @@ export default {
                         companyJobs: companyJobTitles, // Juste les titres pour le contexte
                     });
 
-                    // Si le match est >= 30%, valider l'entreprise immédiatement
-                    if (matchResult.overall_match_percentage >= 30) {
+                    // Si le match est >= 15%, valider l'entreprise immédiatement
+                    if (matchResult.overall_match_percentage >= 15) {
                         if (!match) {
                             match = new CompanyMatch();
                             match.matchingProfileId = profile.id;
@@ -540,12 +540,12 @@ export default {
                         
                         console.log(`✓ Company match saved (direct): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
                     } else {
-                        console.log(`✗ Company match rejected (score < 30%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
+                        console.log(`✗ Company match rejected (score < 15%): ${company.company_name} - ${matchResult.overall_match_percentage}%`);
                         
                         // Ajouter aux entreprises non matchées pour vérifier leurs jobs
                         unmatchedCompanies.push(company);
                         
-                        // Supprimer le match existant s'il est en dessous de 30%
+                        // Supprimer le match existant s'il est en dessous de 15%
                         if (match && match.id) {
                             await CompanyMatch.delete(match.id);
                         }
@@ -606,8 +606,8 @@ export default {
                                 jobSkills: jobSkills,
                             });
 
-                            // Si le job matche >= 30%, sauvegarder et valider l'entreprise immédiatement
-                            if (jobMatchResult.overall_match_percentage >= 30) {
+                            // Si le job matche >= 15%, sauvegarder
+                            if (jobMatchResult.overall_match_percentage >= 15) {
                                 if (!jobMatch) {
                                     jobMatch = new JobMatch();
                                     jobMatch.matchingProfileId = profile.id;
@@ -631,12 +631,11 @@ export default {
 
                                 companyValidatedViaJob = true;
                                 
-                                // OPTIMISATION: Dès qu'un job matche, on valide l'entreprise et on arrête
-                                break;
+                                // CONTINUER pour tester tous les autres jobs au lieu de s'arrêter
                             } else {
-                                console.log(`    ✗ Job match rejected (score < 30%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
+                                console.log(`    ✗ Job match rejected (score < 15%): ${job.title} - ${jobMatchResult.overall_match_percentage}%`);
                                 
-                                // Supprimer le match existant s'il est en dessous de 30%
+                                // Supprimer le match existant s'il est en dessous de 15%
                                 if (jobMatch && jobMatch.id) {
                                     await JobMatch.delete(jobMatch.id);
                                 }
@@ -646,6 +645,10 @@ export default {
                             // Continuer avec les autres jobs
                         }
                     }
+
+                    // Résumé du matching pour cette entreprise
+                    const matchingJobsCount = jobMatches.filter(jm => jm.matchingProfileId === profile.id).length;
+                    console.log(`  📊 Company summary: ${company.company_name} - ${matchingJobsCount} jobs matched out of ${publicJobs.length} total jobs`);
 
                     // Si au moins un job a matché, créer le CompanyMatch
                     if (companyValidatedViaJob) {
@@ -668,16 +671,19 @@ export default {
                             criteria_scores: bestJobMatchDetails.criteria_scores || [],
                             strengths: [
                                 ...(bestJobMatchDetails.strengths || []),
-                                `Offre d'emploi correspondante: ${bestJobTitle}`
+                                `Meilleure offre: ${bestJobTitle} (${bestJobMatchScore}%)`,
+                                `${matchingJobsCount} offre(s) d'emploi correspondent à votre profil`
                             ],
                             gaps: bestJobMatchDetails.gaps || [],
-                            recommendation: `Cette entreprise a publié une offre (${bestJobTitle}) qui correspond à votre profil à ${bestJobMatchScore}%`
+                            recommendation: `Cette entreprise a ${matchingJobsCount} offre(s) qui correspondent à votre profil. La meilleure correspondance est "${bestJobTitle}" avec ${bestJobMatchScore}%`
                         };
 
                         await companyMatch.save();
                         companyMatches.push(companyMatch);
                         
-                        console.log(`  ✓ Company validated via job: ${company.company_name} - ${bestJobMatchScore}%`);
+                        console.log(`  ✓ Company validated via jobs: ${company.company_name} - Best: ${bestJobMatchScore}% (${matchingJobsCount} jobs matched)`);
+                    } else {
+                        console.log(`  ✗ Company not validated: ${company.company_name} - No jobs matched the 15% threshold`);
                     }
                 } catch (error) {
                     console.error(`  Error processing jobs for company ${company.id}:`, error);
