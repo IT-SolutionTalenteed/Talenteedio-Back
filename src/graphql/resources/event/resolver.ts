@@ -17,7 +17,7 @@ const relations = ['admin.user', 'company', 'company.logo', 'category', 'compani
 const resolver = {
     Query: {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; companyId: string; title: string; status: string; category: string } }, context: any): Promise<Resource<Event>> => {
+        getEvents: async (_: any, args: { input: PaginationInput; filter: { adminId: string; companyId: string; title: string; status: string; category: string; featured: boolean } }, context: any): Promise<Resource<Event>> => {
             try {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let filters: any;
@@ -44,6 +44,11 @@ const resolver = {
                     // Filtrer par catégorie (slug)
                     if (args.filter.category) {
                         filters.where.category = { slug: args.filter.category };
+                    }
+
+                    // Filtrer par événement mis en avant
+                    if (args.filter.featured !== undefined) {
+                        filters.where.featured = args.filter.featured;
                     }
                 } else if (!user?.admin) {
                     filters = { where: { status: 'public' } };

@@ -122,6 +122,7 @@ input EventFilter {
     title: String
     status: String
     category: String
+    featured: Boolean
 }
 
 # Event Participation Request Types
