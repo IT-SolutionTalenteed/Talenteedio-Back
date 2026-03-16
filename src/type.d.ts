@@ -288,10 +288,12 @@ export interface CreateCompanyInput extends Partial<Company> {
     company_name: string;
     contact: Contact;
     user: UpdateUserInput;
+    values?: string[] | { id: string }[];
 }
 
 export interface UpdateCompanyInput extends Partial<Company> {
     id: string;
+    values?: string[] | { id: string }[];
 }
 
 export interface CreateReferralInput extends Partial<Referral> {

@@ -13,7 +13,7 @@ import { createGraphQLError } from 'graphql-yoga';
 import { BAD_REQUEST, FORBIDDEN, NOT_FOUND } from '../../../helpers/error-constants';
 import { matchProfileWithCompany } from '../../../helpers/ai/profile-company-matcher';
 import { matchCVWithJob, extractCVText } from '../../../helpers/ai/cv-matcher';
-import { In, Not } from 'typeorm';
+import { In } from 'typeorm';
 
 const relations = ['user', 'cv', 'currentSector'];
 
@@ -378,7 +378,7 @@ export default {
 
             const profile = await MatchingProfile.findOne({
                 where: { id: args.matchingProfileId, userId: user.id },
-                relations: ['cv', 'currentSector'],
+                relations: ['cv', 'currentSector', 'user', 'user.talent'],
             });
 
             if (!profile) {
@@ -396,6 +396,38 @@ export default {
                     profileText += `Centres d'intérêt: ${profile.interests.join(', ')}\n`;
                 }
             }
+
+            // Si toujours pas de profileText, utiliser les données du talent
+            if (!profileText && profile.user?.talent) {
+                const talent = profile.user.talent;
+                profileText = `Profil: ${profile.title}\n`;
+                if (talent.competences) {
+                    profileText += `Compétences: ${talent.competences}\n`;
+                }
+                if (talent.formations) {
+                    profileText += `Formation: ${talent.formations}\n`;
+                }
+                if (talent.interests) {
+                    profileText += `Centres d'intérêt: ${talent.interests}\n`;
+                }
+                if (talent.desiredPosition) {
+                    profileText += `Poste recherché: ${talent.desiredPosition}\n`;
+                }
+            }
+
+            // Combiner les compétences du profil ET du talent
+            const allSkills = [
+                ...(profile.skills || []),
+                ...(profile.user?.talent?.competences ? profile.user.talent.competences.split(',').map(s => s.trim()) : [])
+            ];
+            const uniqueSkills = [...new Set(allSkills)]; // Supprimer les doublons
+
+            // Combiner les secteurs ciblés
+            const allTargetSectors = [
+                ...(profile.targetSectorIds || []),
+                ...(profile.user?.talent?.desiredSector ? profile.user.talent.desiredSector.split(',').map(s => s.trim()) : [])
+            ];
+            const uniqueTargetSectors = [...new Set(allTargetSectors)];
 
             if (!profileText) {
                 throw createGraphQLError('Profil incomplet. Veuillez ajouter un CV ou renseigner vos compétences et centres d\'intérêt.', { 
@@ -515,9 +547,9 @@ export default {
                     const matchResult = await matchProfileWithCompany({
                         profileText,
                         profileTitle: profile.title,
-                        profileSkills: profile.skills || [],
+                        profileSkills: uniqueSkills,
                         profileInterests: profile.interests || [],
-                        targetSectors: profile.targetSectorIds || [],
+                        targetSectors: uniqueTargetSectors,
                         companyName: company.company_name,
                         companyDescription,
                         companySector,

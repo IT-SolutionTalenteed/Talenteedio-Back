@@ -302,6 +302,7 @@ type Company {
     jobs: [Job]
     logo: Media
     category: Category
+    values: [Value]
     permission: Permission
     createdAt: Date
 }
@@ -390,6 +391,7 @@ input CreateCompanyInput {
     workingHours: String
     socialNetworks: SocialNetworksInput
     category: UpdateCategoryInput
+    values: [UpdateValueInput]
     permission: UpdatePermissionInput
 }
 
@@ -434,6 +436,7 @@ input UpdateCompanyInput {
     workingHours: String
     socialNetworks: SocialNetworksInput
     category: UpdateCategoryInput
+    values: [UpdateValueInput]
     permission: UpdatePermissionInput
 }
 

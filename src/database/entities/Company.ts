@@ -1,6 +1,6 @@
-import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, BeforeInsert, BeforeUpdate, OneToMany, Column, CreateDateColumn } from 'typeorm';
+import { BaseEntity, Entity, JoinColumn, ManyToOne, OneToOne, PrimaryGeneratedColumn, BeforeInsert, BeforeUpdate, OneToMany, Column, CreateDateColumn, ManyToMany, JoinTable } from 'typeorm';
 
-import { Role, User, Article, Contact, Media, Category, Job, Permission } from '.';
+import { Role, User, Article, Contact, Media, Category, Job, Permission, Value } from '.';
 import { STATUS } from './Status';
 
 @Entity()
@@ -35,6 +35,10 @@ export class Company extends BaseEntity {
 
     @ManyToOne(() => Category)
     category: Category;
+
+    @ManyToMany(() => Value)
+    @JoinTable()
+    values: Value[];
 
     @Column({
         type: 'enum',

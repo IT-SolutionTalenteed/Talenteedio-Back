@@ -3,7 +3,7 @@ import { composeResolvers } from '@graphql-tools/resolvers-composition';
 import { FindManyOptions, In, IsNull, Like, Not } from 'typeorm';
 import { createGraphQLError } from 'graphql-yoga';
 
-import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Permission, Category } from '../../../database/entities';
+import { Address, Admin, Company, Contact, Referral, Consultant, Talent, User, Skill, CV, LM, Media, Permission, Category, Value } from '../../../database/entities';
 import { CreateCVInput, UploadCVInput, CreateCompanyInput, CreateLMInput, CreateReferralInput, CreateTalentInput, CreateConsultantInput, CreateUserInput, PaginationInput, Payload, Resource, RoleName, UpdateCVInput, UpdateCompanyInput, UpdateLMInput, UpdateReferralInput, UpdateTalentInput, UpdateConsultantInput, UpdateUserInput, CreateHrFirstClubInput, UpdateHrFirstClubInput } from '../../../type';
 
 import { getResources, returnError } from '../../../helpers/graphql';
@@ -18,7 +18,7 @@ import transporter from '../../../helpers/mailer';
 import path from 'path';
 
 const relations = ['admin', 'company', 'talent', 'consultant', 'referral', 'profilePicture'];
-const companyRelations = ['user', 'contact.address', 'articles', 'logo', 'category', 'jobs.applications', 'permission'];
+const companyRelations = ['user', 'contact.address', 'articles', 'logo', 'category', 'jobs.applications', 'permission', 'values'];
 const referralRelations = ['user', 'contact.address', 'category', 'applications'];
 const hrFirstClubRelations = ['user', 'contact.address', 'logo'];
 const talentRelations = ['user', 'contact.address', 'category', 'skills', 'applications', 'cvs', 'lms', 'consent', 'values'];
@@ -775,6 +775,15 @@ const resolver = {
                     }
                 }
 
+                // Charger les values si fournies
+                if (args.input.values && Array.isArray(args.input.values) && args.input.values.length > 0) {
+                    const valueIds = args.input.values.map((v: any) => typeof v === 'string' ? v : v.id).filter(Boolean);
+                    if (valueIds.length > 0) {
+                        const values = await queryRunner.manager.findByIds(Value, valueIds);
+                        company.values = values;
+                    }
+                }
+
                 await queryRunner.manager.save(company);
 
                 // Lier l'utilisateur à la company AVANT de sauvegarder l'utilisateur
@@ -884,6 +893,21 @@ const resolver = {
                         }
                     } else if (args.input.logo === null) {
                         updateData.logo = null;
+                    }
+
+                    // Charger les values si fournies
+                    if (args.input.values !== undefined) {
+                        if (Array.isArray(args.input.values) && args.input.values.length > 0) {
+                            const valueIds = args.input.values.map((v: any) => typeof v === 'string' ? v : v.id).filter(Boolean);
+                            if (valueIds.length > 0) {
+                                const values = await queryRunner.manager.findByIds(Value, valueIds);
+                                updateData.values = values;
+                            } else {
+                                updateData.values = [];
+                            }
+                        } else {
+                            updateData.values = [];
+                        }
                     }
 
                     company = Object.assign(company, updateData) as Company;
