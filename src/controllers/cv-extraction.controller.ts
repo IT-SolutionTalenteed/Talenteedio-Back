@@ -16,7 +16,8 @@ export const extractCVDataController = {
       const cvPath = req.file.path;
       
       // Appeler le script Python d'extraction de données CV
-      const pythonProcess = spawn('python3', [
+      const pythonPath = path.join(__dirname, '../../ai-service/venv/bin/python');
+      const pythonProcess = spawn(pythonPath, [
         path.join(__dirname, '../../ai-service/cv_data_extractor.py'),
         '--cv-path', cvPath
       ]);
