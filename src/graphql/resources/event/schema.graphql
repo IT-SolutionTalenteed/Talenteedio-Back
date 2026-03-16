@@ -54,6 +54,7 @@ input CreateEventInput {
     slug: String!
     content: String!
     date: Date!
+    endDate: Date
     metaDescription: String
     status: Status
     startTime: String
@@ -72,6 +73,7 @@ input UpdateEventInput {
     slug: String
     content: String
     date: Date
+    endDate: Date
     metaDescription: String
     status: Status
     startTime: String
@@ -97,6 +99,7 @@ type Event {
     slug: String!
     content: String!
     date: Date!
+    endDate: Date
     metaDescription: String
     status: Status!
     startTime: String

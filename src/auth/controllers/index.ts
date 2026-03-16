@@ -247,7 +247,7 @@ export const register = async (req: Request, res: Response) => {
             skills: req.body.skills ? ent.encode(req.body.skills) : null,
             languages: req.body.languages ? ent.encode(req.body.languages) : null,
             education: req.body.education ? ent.encode(req.body.education) : null,
-            desiredSector: req.body.desiredSector ? ent.encode(req.body.desiredSector) : null,
+            desiredSector: req.body.desiredSector ? (Array.isArray(req.body.desiredSector) ? req.body.desiredSector.map(s => ent.encode(s)).join(', ') : ent.encode(req.body.desiredSector)) : null,
             interests: req.body.interests ? ent.encode(req.body.interests) : null,
             desiredPosition: req.body.desiredPosition ? ent.encode(req.body.desiredPosition) : null,
             desiredSalary: req.body.desiredSalary ? ent.encode(req.body.desiredSalary) : null,
