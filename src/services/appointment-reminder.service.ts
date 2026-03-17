@@ -96,8 +96,16 @@ export class AppointmentReminderService {
    * Formate une date pour l'affichage
    */
   private static formatDate(date: Date): string {
+    // Créer une nouvelle date en utilisant les composants de la date pour éviter les problèmes de timezone
     const d = new Date(date);
-    return d.toLocaleDateString('fr-FR', {
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const day = d.getDate();
+    
+    // Créer une nouvelle date avec les composants pour éviter les décalages de timezone
+    const localDate = new Date(year, month, day);
+    
+    return localDate.toLocaleDateString('fr-FR', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
